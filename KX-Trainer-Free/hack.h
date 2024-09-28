@@ -40,8 +40,8 @@ private:
     static inline char OBJECT_CLIPPING_MASK[] = "?xxxxxxxx";
 
     static inline char BETTER_MOVEMENT_PATTERN[] =
-        "\x73\x17\xF3\x0F\x10\x05\x7C\x1B\xA2\x00\x0F\x2F\xC2";
-    static inline char BETTER_MOVEMENT_MASK[] = "?xxxxx???xxxx";
+        "\x75\x00\x00\x28\x4C\x24\x00\x0F\x59\x8B";
+    static inline char BETTER_MOVEMENT_MASK[] = "x??xxx?xxx";
 
     // Offsets
     unsigned int byte1 = 0x50, byte2 = 0x88, byte3 = 0x10, byte4 = 0x68;
@@ -70,9 +70,9 @@ private:
     float x_save = 0, y_save = 0, z_save = 0;
     float speed = 0, turbo_speed = 0;
     float invisibility = 0, wallclimb = 0, clipping = 0, fly = 0;
-    float object_clipping = 0;
+    short object_clipping = 0;
     short fog = 0;
-    short better_movement = 0;
+    byte better_movement = 0;
     int speed_freeze = 0;
     bool fly_check = false, turbo_check = false;
 

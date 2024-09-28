@@ -69,6 +69,7 @@ void Hack::base_scan() {
 	fogAddress = PatternScanExModule(hProcess, gw2_name, gw2_name, FOG_PATTERN, FOG_MASK);
 	objectClippingAddress = PatternScanExModule(hProcess, gw2_name, gw2_name, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK);
 	betterMovementAddress = PatternScanExModule(hProcess, gw2_name, gw2_name, BETTER_MOVEMENT_PATTERN, BETTER_MOVEMENT_MASK);
+	betterMovementAddress = (void*)((uintptr_t)betterMovementAddress + 0x2);
 	system("cls");
 }
 
@@ -225,9 +226,9 @@ void Hack::hacks_better_movement()
 	if (movement_toggle)
 	{
 		ReadProcessMemory(hProcess, (BYTE*)betterMovementAddress, &better_movement, sizeof(better_movement), nullptr);
-		if (better_movement == 6003)
+		if (better_movement != 0x75)
 		{
-			better_movement = 6005;
+			better_movement = 0x75;  // Set it to Jne (0x75)
 			WriteProcessMemory(hProcess, (BYTE*)betterMovementAddress, &better_movement, sizeof(better_movement), nullptr);
 			set_color(GREEN);
 			std::cout << "\nBetter Movement: On" << std::endl;
@@ -235,7 +236,7 @@ void Hack::hacks_better_movement()
 		}
 		else
 		{
-			better_movement = 6003;
+			better_movement = 0x0F;  // Reset to Movaps (0x0F)
 			WriteProcessMemory(hProcess, (BYTE*)betterMovementAddress, &better_movement, sizeof(better_movement), nullptr);
 			set_color(RED);
 			std::cout << "\nBetter Movement: Off" << std::endl;

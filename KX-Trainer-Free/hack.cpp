@@ -1,513 +1,415 @@
+#include "hack.h"
+#include "processtools.h"
+#include "patternscan.h"
+#include "memoryutils.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
-#include <vector>
-#include <windows.h>
-#include "hack.h"
 
-// Helper function to sleep
-void sleep_for_seconds(int seconds) {
-	std::this_thread::sleep_for(std::chrono::seconds(seconds));
-}
-
-// Helper function to set console color
-void Hack::set_color(int color) {
-	SetConsoleTextAttribute(hConsole, color);
-}
-
-// Helper function to reduce duplication
-uintptr_t Hack::refresh_addr(std::vector<unsigned int> offsets)
+Hack::Hack() :
+    m_xOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x120 },
+    m_yOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x128 },
+    m_zOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x124 },
+    m_zHeight1Offsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x118 },
+    m_zHeight2Offsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x114 },
+    m_gravityOffsets{ BYTE1, BYTE2, BYTE3, 0x1FC },
+    m_speedOffsets{ BYTE1, BYTE2, BYTE3, 0x220 },
+    m_wallClimbOffsets{ BYTE1, BYTE2, BYTE3, 0x204 },
+    m_consoleHandle(GetStdHandle(STD_OUTPUT_HANDLE))
 {
-	return FindDMAAddy(hProcess, dynamicPtrBaseAddr, offsets);
+    findProcess();
+    performBaseScan();
 }
 
-void Hack::find_process() {
-	if (hProcess == NULL) {
-		int exit_time = 5;
-		while (exit_time > 0 && hProcess == NULL) {
-			std::cout << "Gw2-64.exe process not found!" << std::endl;
-			std::cout << "Exiting in " << exit_time << " seconds..." << std::endl;
-			sleep_for_seconds(1);
-			exit_time--;
-			system("cls");
-			processID = GetProcID(L"Gw2-64.exe");
-			hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, processID);
-		}
-		if (exit_time == 0) {
-			exit(0);
-		}
-	}
-}
-
-void Hack::base_scan() {
-	int scans = 0;
-	unsigned int base_value = 0;
-	while (dynamicPtrBaseAddr == NULL || base_value <= 10000) {
-		baseAddress = PatternScanExModule(hProcess, gw2_name, gw2_name,
-			BASE_SCAN_PATTERN, BASE_SCAN_MASK);
-		if (baseAddress != nullptr) {
-			uintptr_t addrWithOffset = reinterpret_cast<uintptr_t>(baseAddress) - 0x8;
-			baseAddress = reinterpret_cast<void*>(addrWithOffset);
-		}
-
-		dynamicPtrBaseAddr = reinterpret_cast<std::uintptr_t>(baseAddress);
-		if (dynamicPtrBaseAddr == NULL) {
-			system("cls");
-			scans++;
-			std::cout << "Gw2-64.exe process found!" << std::endl;
-			std::cout << "Scanning for Base Address... " << scans << std::endl;
-		}
-		else {
-			system("cls");
-			ReadProcessMemory(hProcess, (BYTE*)baseAddress, &base_value, sizeof(base_value), nullptr);
-			std::cout << "Gw2-64.exe process found!" << std::endl;
-			std::cout << "Waiting for character selection..." << std::endl;
-		}
-		sleep_for_seconds(1);
-	}
-
-	fogAddress = PatternScanExModule(hProcess, gw2_name, gw2_name, FOG_PATTERN, FOG_MASK);
-	objectClippingAddress = PatternScanExModule(hProcess, gw2_name, gw2_name, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK);
-	betterMovementAddress = PatternScanExModule(hProcess, gw2_name, gw2_name, BETTER_MOVEMENT_PATTERN, BETTER_MOVEMENT_MASK);
-	betterMovementAddress = (void*)((uintptr_t)betterMovementAddress + 0x2);
-	system("cls");
-}
-
-
-void Hack::refresh_address() {
-	x_addr = refresh_addr(x_offsets);
-	y_addr = refresh_addr(y_offsets);
-	z_addr = refresh_addr(z_offsets);
-	zheight1_addr = refresh_addr(zheight1_offsets);
-	zheight2_addr = refresh_addr(zheight2_offsets);
-	gravity_addr = refresh_addr(gravity_offsets);
-	speed_addr = refresh_addr(speed_offsets);
-	wallclimb_addr = refresh_addr(wallclimb_offsets);
-}
-
-void Hack::refresh_xyz() {
-	x_addr = refresh_addr(x_offsets);
-	y_addr = refresh_addr(y_offsets);
-	z_addr = refresh_addr(z_offsets);
-}
-
-void Hack::read_xyz() {
-	ReadProcessMemory(hProcess, (BYTE*)x_addr, &x_value, sizeof(x_value), nullptr);
-	ReadProcessMemory(hProcess, (BYTE*)y_addr, &y_value, sizeof(y_value), nullptr);
-	ReadProcessMemory(hProcess, (BYTE*)z_addr, &z_value, sizeof(z_value), nullptr);
-}
-
-void Hack::write_xyz() {
-	WriteProcessMemory(hProcess, (BYTE*)x_addr, &x_value, sizeof(x_value), nullptr);
-	WriteProcessMemory(hProcess, (BYTE*)y_addr, &y_value, sizeof(y_value), nullptr);
-	WriteProcessMemory(hProcess, (BYTE*)z_addr, &z_value, sizeof(z_value), nullptr);
-}
-
-void Hack::info() {
-	std::cout << "[Hotkeys]\n"
-		<< "NUMPAD1 - Save Position\n"
-		<< "NUMPAD2 - Load Position\n"
-		<< "NUMPAD3 - Invisibility (for mobs)\n"
-		<< "NUMPAD4 - Wall Climb\n"
-		<< "NUMPAD5 - Clipping\n"
-		<< "NUMPAD6 - Object Clipping\n"
-		<< "NUMPAD7 - Better Movement\n"
-		<< "NUMPAD+ - Super Sprint (hold)\n"
-		<< "CTRL - Fly (hold)\n"
-		<< "SHIFT - Sprint\n"
-		<< "[Logs]\n";
+Hack::~Hack() {
+    if (m_processHandle) {
+        CloseHandle(m_processHandle);
+    }
 }
 
 void Hack::start() {
-	std::cout << "[";
-	set_color(BLUE);
-	std::cout << "KX Trainer by Krixx";
-	set_color(DEFAULT);
-	std::cout << "]";
-
-	std::cout << "\nIf you like the trainer, consider upgrading to the paid version at ";
-	set_color(BLUE);
-	std::cout << "kxtools.xyz";
-	set_color(DEFAULT);
-	std::cout << " for more features and support!" << std::endl;
-
-	std::cout << "\nGw2-64.exe process found!\n" << std::endl;
-
-	info();
+    printWelcomeMessage();
+    displayInfo();
 }
 
+void Hack::run() {
+    while (true) {
+        refreshAddresses();
+        //toggleFog();
+        toggleObjectClipping();
+        toggleBetterMovement();
+        handleSprint();
+        savePosition();
+        loadPosition();
+        handleSuperSprint();
+        toggleInvisibility();
+        toggleWallClimb();
+        toggleClipping();
+        handleFly();
 
-void Hack::hacks_loop()
-{
-	while (1)
-	{
-		refresh_address();
-		//hacks_fog();
-		hacks_object_clipping();
-		hacks_better_movement();
-		hacks_sprint();
-		hacks_save_position();
-		hacks_load_position();
-		hacks_super_sprint();
-		hacks_invisibility();
-		hacks_wall_climb();
-		hacks_clipping();
-		hacks_fly();
-
-		Sleep(1);
-	}
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
 }
 
-void Hack::hacks_fog()
-{
-	bool fog_toggle = false;
-	if (GetAsyncKeyState(key_fog) & 1)
-	{
-		fog_toggle = !fog_toggle;
-	}
-	if (fog_toggle)
-	{
-		ReadProcessMemory(hProcess, (BYTE*)fogAddress, &fog, sizeof(fog), nullptr);
-		if (fog == 1)
-		{
-			fog = 0;
-			WriteProcessMemory(hProcess, (BYTE*)fogAddress, &fog, sizeof(fog), nullptr);
-			set_color(RED);
-			std::cout << "\nFog: Off" << std::endl;
-			set_color(DEFAULT);
-		}
-		else
-		{
-			fog = 1;
-			WriteProcessMemory(hProcess, (BYTE*)fogAddress, &fog, sizeof(fog), nullptr);
-			set_color(GREEN);
-			std::cout << "\nFog: On" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+void Hack::findProcess() {
+    m_processId = GetProcID(GW2_PROCESS_NAME);
+    m_processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, m_processId);
+
+    if (m_processHandle == nullptr) {
+        int exitTime = 5;
+        while (exitTime > 0 && m_processHandle == nullptr) {
+            std::cout << "Gw2-64.exe process not found!" << std::endl;
+            std::cout << "Exiting in " << exitTime << " seconds..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            exitTime--;
+            system("cls");
+            m_processId = GetProcID(GW2_PROCESS_NAME);
+            m_processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, m_processId);
+        }
+        if (exitTime == 0) {
+            exit(0);
+        }
+    }
 }
 
-void Hack::hacks_object_clipping()
-{
-	bool object_clipping_toggle = false;
-	if (GetAsyncKeyState(key_object_clipping) & 1)
-	{
-		object_clipping_toggle = !object_clipping_toggle;
-	}
-	if (object_clipping_toggle)
-	{
-		ReadProcessMemory(hProcess, (BYTE*)objectClippingAddress, &object_clipping, sizeof(object_clipping), nullptr);
-		if (object_clipping == 4051)
-		{
-			object_clipping = 4059;
-			WriteProcessMemory(hProcess, (BYTE*)objectClippingAddress, &object_clipping, sizeof(object_clipping), nullptr);
-			set_color(GREEN);
-			std::cout << "\nObject Clipping: On" << std::endl;
-			set_color(DEFAULT);
-		}
-		else
-		{
-			object_clipping = 4051;
-			WriteProcessMemory(hProcess, (BYTE*)objectClippingAddress, &object_clipping, sizeof(object_clipping), nullptr);
-			set_color(RED);
-			std::cout << "\nObject Clipping: Off" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+void Hack::performBaseScan() {
+    int scans = 0;
+    unsigned int baseValue = 0;
+
+    while (m_dynamicPtrBaseAddr == 0 || baseValue <= BASE_ADDRESS_MIN_VALUE) {
+        m_baseAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BASE_SCAN_PATTERN, BASE_SCAN_MASK));
+
+        if (m_baseAddress != 0) {
+            m_baseAddress -= BASE_ADDRESS_OFFSET;
+        }
+
+        m_dynamicPtrBaseAddr = m_baseAddress;
+
+        if (m_dynamicPtrBaseAddr == 0) {
+            system("cls");
+            scans++;
+            std::cout << "Gw2-64.exe process found!" << std::endl;
+            std::cout << "Scanning for Base Address... " << scans << std::endl;
+        }
+        else {
+            system("cls");
+            ReadMemory(m_processHandle, m_baseAddress, baseValue);
+            std::cout << "Gw2-64.exe process found!" << std::endl;
+            std::cout << "Waiting for character selection..." << std::endl;
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    m_fogAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FOG_PATTERN, FOG_MASK));
+    m_objectClippingAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK));
+    m_betterMovementAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BETTER_MOVEMENT_PATTERN, BETTER_MOVEMENT_MASK));
+    m_betterMovementAddress += 0x2;
+    system("cls");
 }
 
-void Hack::hacks_better_movement()
-{
-	bool movement_toggle = false;
-	if (GetAsyncKeyState(key_better_movement) & 1)
-	{
-		movement_toggle = !movement_toggle;
-	}
-	if (movement_toggle)
-	{
-		ReadProcessMemory(hProcess, (BYTE*)betterMovementAddress, &better_movement, sizeof(better_movement), nullptr);
-		if (better_movement != 0x75)
-		{
-			better_movement = 0x75;  // Set it to Jne (0x75)
-			WriteProcessMemory(hProcess, (BYTE*)betterMovementAddress, &better_movement, sizeof(better_movement), nullptr);
-			set_color(GREEN);
-			std::cout << "\nBetter Movement: On" << std::endl;
-			set_color(DEFAULT);
-		}
-		else
-		{
-			better_movement = 0x0F;  // Reset to Movaps (0x0F)
-			WriteProcessMemory(hProcess, (BYTE*)betterMovementAddress, &better_movement, sizeof(better_movement), nullptr);
-			set_color(RED);
-			std::cout << "\nBetter Movement: Off" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+void Hack::refreshAddresses() {
+    m_xAddr = refreshAddr(m_xOffsets);
+    m_yAddr = refreshAddr(m_yOffsets);
+    m_zAddr = refreshAddr(m_zOffsets);
+    m_zHeight1Addr = refreshAddr(m_zHeight1Offsets);
+    m_zHeight2Addr = refreshAddr(m_zHeight2Offsets);
+    m_gravityAddr = refreshAddr(m_gravityOffsets);
+    m_speedAddr = refreshAddr(m_speedOffsets);
+    m_wallClimbAddr = refreshAddr(m_wallClimbOffsets);
 }
 
-void Hack::hacks_sprint()
-{
-	//Freeze Speed
-	if (speed_freeze == 1) {
-		ReadProcessMemory(hProcess, (BYTE*)speed_addr, &speed, sizeof(speed), nullptr);
-		if (speed < sprint_settings)
-		{
-			speed = sprint_settings;
-			WriteProcessMemory(hProcess, (BYTE*)speed_addr, &speed, sizeof(speed), nullptr);
-		}
-	}
-
-	//Sprint
-	bool speed_toggle = false;
-	if (GetAsyncKeyState(key_sprint) & 1)
-	{
-		speed_toggle = !speed_toggle;
-	}
-	if (speed_toggle)
-	{
-		ReadProcessMemory(hProcess, (BYTE*)speed_addr, &speed, sizeof(speed), nullptr);
-		if (speed < sprint_settings)
-		{
-			speed_freeze = 1;
-			set_color(GREEN);
-			std::cout << "\nOn: Sprint" << std::endl;
-			set_color(DEFAULT);
-		}
-		else
-		{
-			speed_freeze = 0;
-			speed = 9.1875;
-			WriteProcessMemory(hProcess, (BYTE*)speed_addr, &speed, sizeof(speed), nullptr);
-			set_color(RED);
-			std::cout << "\nOff: Sprint" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+void Hack::readXYZ() {
+    ReadMemory(m_processHandle, m_xAddr, m_xValue);
+    ReadMemory(m_processHandle, m_yAddr, m_yValue);
+    ReadMemory(m_processHandle, m_zAddr, m_zValue);
 }
 
-void Hack::hacks_super_sprint()
-{
-	//Sprint turbo
-	bool turbo_toggle = false;
-	if (GetAsyncKeyState(key_super_sprint))
-	{
-		turbo_toggle = !turbo_toggle;
-	}
-	if (turbo_toggle)
-	{
-		if (turbo_check == false)
-		{
-			ReadProcessMemory(hProcess, (BYTE*)speed_addr, &speed, sizeof(speed), nullptr);
-			turbo_speed = speed;
-			set_color(GREEN);
-			std::cout << "\nOn: Super Sprint" << std::endl;
-			set_color(DEFAULT);
-		}
-		speed = 30;
-		WriteProcessMemory(hProcess, (BYTE*)speed_addr, &speed, sizeof(speed), nullptr);
-		turbo_check = true;
-	}
-	else
-	{
-		if (turbo_check == true)
-		{
-			//Write previous speed
-			speed = turbo_speed;
-			WriteProcessMemory(hProcess, (BYTE*)speed_addr, &speed, sizeof(speed), nullptr);
-			turbo_check = false;
-			set_color(RED);
-			std::cout << "\nOff: Super Sprint" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+void Hack::writeXYZ() {
+    WriteMemory(m_processHandle, m_xAddr, m_xValue);
+    WriteMemory(m_processHandle, m_yAddr, m_yValue);
+    WriteMemory(m_processHandle, m_zAddr, m_zValue);
 }
 
-void Hack::hacks_save_position()
-{
-	//Save Position
-	bool save_pos = false;
-	if (GetAsyncKeyState(key_savepos) & 1)
-	{
-		save_pos = !save_pos;
-	}
-	if (save_pos)
-	{
-		ReadProcessMemory(hProcess, (BYTE*)x_addr, &x_save, sizeof(x_save), nullptr);
-		ReadProcessMemory(hProcess, (BYTE*)y_addr, &y_save, sizeof(y_save), nullptr);
-		ReadProcessMemory(hProcess, (BYTE*)z_addr, &z_save, sizeof(z_save), nullptr);
-		set_color(BLUE);
-		std::cout << "\nSaved Position" << std::endl;
-		set_color(DEFAULT);
-	}
+void Hack::displayInfo() {
+    std::cout << "[Hotkeys]\n"
+        << "NUMPAD1 - Save Position\n"
+        << "NUMPAD2 - Load Position\n"
+        << "NUMPAD3 - Invisibility (for mobs)\n"
+        << "NUMPAD4 - Wall Climb\n"
+        << "NUMPAD5 - Clipping\n"
+        << "NUMPAD6 - Object Clipping\n"
+        << "NUMPAD7 - Better Movement\n"
+        << "NUMPAD8 - Toggle Fog\n"
+        << "NUMPAD+ - Super Sprint (hold)\n"
+        << "CTRL - Fly (hold)\n"
+        << "SHIFT - Sprint\n"
+        << "[Logs]\n";
 }
 
-void Hack::hacks_load_position()
-{
-	//Load Position
-	bool load_pos = false;
-	if (GetAsyncKeyState(key_loadpos) & 1)
-	{
-		load_pos = !load_pos;
-	}
-	if (load_pos)
-	{
-		if (x_save == 0 && y_save == 0 && z_save == 0)
-		{
-			set_color(BLUE);
-			std::cout << "\nYou must first save your position" << std::endl;
-			set_color(DEFAULT);
-		}
-		else
-		{
-			WriteProcessMemory(hProcess, (BYTE*)x_addr, &x_save, sizeof(x_save), nullptr);
-			WriteProcessMemory(hProcess, (BYTE*)y_addr, &y_save, sizeof(y_save), nullptr);
-			WriteProcessMemory(hProcess, (BYTE*)z_addr, &z_save, sizeof(z_save), nullptr);
-			set_color(BLUE);
-			std::cout << "\nLoaded Position" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+void Hack::printWelcomeMessage() {
+    std::cout << "[";
+    setConsoleColor(BLUE);
+    std::cout << "KX Trainer by Krixx";
+    setConsoleColor(DEFAULT);
+    std::cout << "]";
+
+    std::cout << "\nIf you like the trainer, consider upgrading to the paid version at ";
+    setConsoleColor(BLUE);
+    std::cout << "kxtools.xyz";
+    setConsoleColor(DEFAULT);
+    std::cout << " for more features and support!" << std::endl;
+
+    std::cout << "\nGw2-64.exe process found!\n" << std::endl;
 }
 
-void Hack::hacks_invisibility()
-{
-	//Invisibility for mobs
-	bool invisibility_toggle = false;
-	if (GetAsyncKeyState(key_invisibility) & 1)
-	{
-		invisibility_toggle = !invisibility_toggle;
-	}
-	if (invisibility_toggle)
-	{
-		ReadProcessMemory(hProcess, (BYTE*)zheight1_addr, &invisibility, sizeof(invisibility), nullptr);
-		if (invisibility < 2.7)
-		{
-			invisibility = 2.7;
-			WriteProcessMemory(hProcess, (BYTE*)zheight1_addr, &invisibility, sizeof(invisibility), nullptr);
-			set_color(GREEN);
-			std::cout << "\nOn: Invisibility" << std::endl;
-			set_color(DEFAULT);
-		}
-		else
-		{
-			ReadProcessMemory(hProcess, (BYTE*)y_addr, &y_value, sizeof(y_value), nullptr);
-			y_value = y_value + 3;
-			WriteProcessMemory(hProcess, (BYTE*)y_addr, &y_value, sizeof(y_value), nullptr);
-			invisibility = 1;
-			WriteProcessMemory(hProcess, (BYTE*)zheight1_addr, &invisibility, sizeof(invisibility), nullptr);
-			set_color(RED);
-			std::cout << "\nOff: Invisibility" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+void Hack::setConsoleColor(int color) {
+    SetConsoleTextAttribute(m_consoleHandle, color);
 }
 
-void Hack::hacks_wall_climb()
-{
-	//Wall Climb
-	bool wallclimb_toggle = false;
-	if (GetAsyncKeyState(key_wallclimb) & 1)
-	{
-		wallclimb_toggle = !wallclimb_toggle;
-	}
-	if (wallclimb_toggle)
-	{
-		ReadProcessMemory(hProcess, (BYTE*)wallclimb_addr, &wallclimb, sizeof(wallclimb), nullptr);
-		if (wallclimb < wallclimb_settings)
-		{
-			wallclimb = wallclimb_settings;
-			WriteProcessMemory(hProcess, (BYTE*)wallclimb_addr, &wallclimb, sizeof(wallclimb), nullptr);
-			set_color(GREEN);
-			std::cout << "\nOn: Wall Climb" << std::endl;
-			set_color(DEFAULT);
-		}
-		else
-		{
-			wallclimb = 2.1875;
-			WriteProcessMemory(hProcess, (BYTE*)wallclimb_addr, &wallclimb, sizeof(wallclimb), nullptr);
-			set_color(RED);
-			std::cout << "\nOff: Wall Climb" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
+    return FindDMAAddy(m_processHandle, m_dynamicPtrBaseAddr, offsets);
 }
 
-void Hack::hacks_clipping()
-{
-	//Clipping
-	bool clipping_toggle = false;
-	if (GetAsyncKeyState(key_clipping) & 1)
-	{
-		clipping_toggle = !clipping_toggle;
-	}
-	if (clipping_toggle)
-	{
-		ReadProcessMemory(hProcess, (BYTE*)zheight2_addr, &clipping, sizeof(clipping), nullptr);
-		if (clipping < 99999)
-		{
-			clipping = 99999;
-			WriteProcessMemory(hProcess, (BYTE*)zheight2_addr, &clipping, sizeof(clipping), nullptr);
-			set_color(GREEN);
-			std::cout << "\nOn: Clipping" << std::endl;
-			set_color(DEFAULT);
-		}
-		else
-		{
-			clipping = 0;
-			WriteProcessMemory(hProcess, (BYTE*)zheight2_addr, &clipping, sizeof(clipping), nullptr);
-			set_color(RED);
-			std::cout << "\nOff: Clipping" << std::endl;
-			set_color(DEFAULT);
-		}
-	}
+void Hack::toggleFog() {
+    static bool fogToggle = false;
+    if (GetAsyncKeyState(KEY_FOG) & 1) {
+        fogToggle = !fogToggle;
+        ReadMemory(m_processHandle, m_fogAddress, m_fog);
+        if (fogToggle) {
+            m_fog = 0;
+            setConsoleColor(RED);
+            std::cout << "\nFog: Off" << std::endl;
+        }
+        else {
+            m_fog = 1;
+            setConsoleColor(GREEN);
+            std::cout << "\nFog: On" << std::endl;
+        }
+        WriteMemory(m_processHandle, m_fogAddress, m_fog);
+        setConsoleColor(DEFAULT);
+    }
 }
 
-void Hack::hacks_fly()
-{
-	//Fly on hold
-	ReadProcessMemory(hProcess, (BYTE*)gravity_addr, &fly, sizeof(fly), nullptr);
-	bool fly_toggle = false;
-	if (GetAsyncKeyState(key_fly))
-	{
-		fly_toggle = !fly_toggle;
-	}
-	if (fly_toggle)
-	{
-		if (fly_check == false)
-		{
-			if (fly < fly_settings)
-			{
-				fly = fly_settings;
-				WriteProcessMemory(hProcess, (BYTE*)gravity_addr, &fly, sizeof(fly), nullptr);
-				set_color(GREEN);
-				std::cout << "\nOn: Fly" << std::endl;
-				set_color(DEFAULT);
-			}
-		}
-	}
-	else
-	{
-		if (fly_check == false)
-		{
-			if (fly == 0)
-			{
-				fly_check = true;
-			}
-			else if (fly != -40.625)
-			{
-				fly = -40.625;
-				WriteProcessMemory(hProcess, (BYTE*)gravity_addr, &fly, sizeof(fly), nullptr);
-				set_color(RED);
-				std::cout << "\nOff: Fly" << std::endl;
-				set_color(DEFAULT);
-			}
-		}
-		else
-		{
-			if (fly != 0)
-			{
-				fly_check = false;
-			}
-		}
-	}
+void Hack::toggleObjectClipping() {
+    static bool objectClippingToggle = false;
+    if (GetAsyncKeyState(KEY_OBJECT_CLIPPING) & 1) {
+        objectClippingToggle = !objectClippingToggle;
+        ReadMemory(m_processHandle, m_objectClippingAddress, m_objectClipping);
+        if (objectClippingToggle) {
+            m_objectClipping = OBJECT_CLIPPING_ON;
+            setConsoleColor(GREEN);
+            std::cout << "\nObject Clipping: On" << std::endl;
+        }
+        else {
+            m_objectClipping = OBJECT_CLIPPING_OFF;
+            setConsoleColor(RED);
+            std::cout << "\nObject Clipping: Off" << std::endl;
+        }
+        WriteMemory(m_processHandle, m_objectClippingAddress, m_objectClipping);
+        setConsoleColor(DEFAULT);
+    }
+}
+
+void Hack::toggleBetterMovement() {
+    static bool movementToggle = false;
+    if (GetAsyncKeyState(KEY_BETTER_MOVEMENT) & 1) {
+        movementToggle = !movementToggle;
+        ReadMemory(m_processHandle, m_betterMovementAddress, m_betterMovement);
+        if (movementToggle) {
+            m_betterMovement = BETTER_MOVEMENT_ON;
+            setConsoleColor(GREEN);
+            std::cout << "\nBetter Movement: On" << std::endl;
+        }
+        else {
+            m_betterMovement = BETTER_MOVEMENT_OFF;
+            setConsoleColor(RED);
+            std::cout << "\nBetter Movement: Off" << std::endl;
+        }
+        WriteMemory(m_processHandle, m_betterMovementAddress, m_betterMovement);
+        setConsoleColor(DEFAULT);
+    }
+}
+
+void Hack::handleSprint() {
+    if (m_speedFreeze == 1) {
+        ReadMemory(m_processHandle, m_speedAddr, m_speed);
+        if (m_speed < SPRINT_SPEED) {
+            m_speed = SPRINT_SPEED;
+            WriteMemory(m_processHandle, m_speedAddr, m_speed);
+        }
+    }
+
+    if (GetAsyncKeyState(KEY_SPRINT) & 1) {
+        ReadMemory(m_processHandle, m_speedAddr, m_speed);
+        if (m_speed < SPRINT_SPEED) {
+            m_speedFreeze = 1;
+            setConsoleColor(GREEN);
+            std::cout << "\nOn: Sprint" << std::endl;
+        }
+        else {
+            m_speedFreeze = 0;
+            m_speed = NORMAL_SPEED;
+            WriteMemory(m_processHandle, m_speedAddr, m_speed);
+            setConsoleColor(RED);
+            std::cout << "\nOff: Sprint" << std::endl;
+        }
+        setConsoleColor(DEFAULT);
+    }
+}
+
+void Hack::handleSuperSprint() {
+    if (GetAsyncKeyState(KEY_SUPER_SPRINT)) {
+        if (!m_turboCheck) {
+            ReadMemory(m_processHandle, m_speedAddr, m_speed);
+            m_turboSpeed = m_speed;
+            setConsoleColor(GREEN);
+            std::cout << "\nOn: Super Sprint" << std::endl;
+            setConsoleColor(DEFAULT);
+        }
+        m_speed = SUPER_SPRINT_SPEED;
+        WriteMemory(m_processHandle, m_speedAddr, m_speed);
+        m_turboCheck = true;
+    }
+    else if (m_turboCheck) {
+        m_speed = m_turboSpeed;
+        WriteMemory(m_processHandle, m_speedAddr, m_speed);
+        m_turboCheck = false;
+        setConsoleColor(RED);
+        std::cout << "\nOff: Super Sprint" << std::endl;
+        setConsoleColor(DEFAULT);
+    }
+}
+
+void Hack::savePosition() {
+    if (GetAsyncKeyState(KEY_SAVEPOS) & 1) {
+        readXYZ();
+        m_xSave = m_xValue;
+        m_ySave = m_yValue;
+        m_zSave = m_zValue;
+        setConsoleColor(BLUE);
+        std::cout << "\nSaved Position" << std::endl;
+        setConsoleColor(DEFAULT);
+    }
+}
+
+void Hack::loadPosition() {
+    if (GetAsyncKeyState(KEY_LOADPOS) & 1) {
+        if (m_xSave == 0 && m_ySave == 0 && m_zSave == 0) {
+            setConsoleColor(BLUE);
+            std::cout << "\nYou must first save your position" << std::endl;
+            setConsoleColor(DEFAULT);
+        }
+        else {
+            m_xValue = m_xSave;
+            m_yValue = m_ySave;
+            m_zValue = m_zSave;
+            writeXYZ();
+            setConsoleColor(BLUE);
+            std::cout << "\nLoaded Position" << std::endl;
+            setConsoleColor(DEFAULT);
+        }
+    }
+}
+
+void Hack::toggleInvisibility() {
+    static bool invisibilityToggle = false;
+    if (GetAsyncKeyState(KEY_INVISIBILITY) & 1) {
+        invisibilityToggle = !invisibilityToggle;
+        ReadMemory(m_processHandle, m_zHeight1Addr, m_invisibility);
+        if (invisibilityToggle) {
+            m_invisibility = INVISIBILITY_ON;
+            WriteMemory(m_processHandle, m_zHeight1Addr, m_invisibility);
+            setConsoleColor(GREEN);
+            std::cout << "\nOn: Invisibility" << std::endl;
+        }
+        else {
+            ReadMemory(m_processHandle, m_yAddr, m_yValue);
+            m_yValue += 3.0f;
+            WriteMemory(m_processHandle, m_yAddr, m_yValue);
+            m_invisibility = INVISIBILITY_OFF;
+            WriteMemory(m_processHandle, m_zHeight1Addr, m_invisibility);
+            setConsoleColor(RED);
+            std::cout << "\nOff: Invisibility" << std::endl;
+        }
+        setConsoleColor(DEFAULT);
+    }
+}
+
+void Hack::toggleWallClimb() {
+    static bool wallClimbToggle = false;
+    if (GetAsyncKeyState(KEY_WALLCLIMB) & 1) {
+        wallClimbToggle = !wallClimbToggle;
+        ReadMemory(m_processHandle, m_wallClimbAddr, m_wallClimb);
+        if (wallClimbToggle) {
+            m_wallClimb = WALLCLIMB_SPEED;
+            WriteMemory(m_processHandle, m_wallClimbAddr, m_wallClimb);
+            setConsoleColor(GREEN);
+            std::cout << "\nOn: Wall Climb" << std::endl;
+        }
+        else {
+            m_wallClimb = WALLCLIMB_NORMAL_SPEED;
+            WriteMemory(m_processHandle, m_wallClimbAddr, m_wallClimb);
+            setConsoleColor(RED);
+            std::cout << "\nOff: Wall Climb" << std::endl;
+        }
+        setConsoleColor(DEFAULT);
+    }
+}
+
+void Hack::toggleClipping() {
+    static bool clippingToggle = false;
+    if (GetAsyncKeyState(KEY_CLIPPING) & 1) {
+        clippingToggle = !clippingToggle;
+        ReadMemory(m_processHandle, m_zHeight2Addr, m_clipping);
+        if (clippingToggle) {
+            m_clipping = CLIPPING_ON;
+            WriteMemory(m_processHandle, m_zHeight2Addr, m_clipping);
+            setConsoleColor(GREEN);
+            std::cout << "\nOn: Clipping" << std::endl;
+        }
+        else {
+            m_clipping = CLIPPING_OFF;
+            WriteMemory(m_processHandle, m_zHeight2Addr, m_clipping);
+            setConsoleColor(RED);
+            std::cout << "\nOff: Clipping" << std::endl;
+        }
+        setConsoleColor(DEFAULT);
+    }
+}
+
+void Hack::handleFly() {
+    ReadMemory(m_processHandle, m_gravityAddr, m_fly);
+    bool flyToggle = GetAsyncKeyState(KEY_FLY);
+
+    if (flyToggle) {
+        if (!m_flyCheck) {
+            if (m_fly < FLY_SPEED) {
+                m_fly = FLY_SPEED;
+                WriteMemory(m_processHandle, m_gravityAddr, m_fly);
+                setConsoleColor(GREEN);
+                std::cout << "\nOn: Fly" << std::endl;
+                setConsoleColor(DEFAULT);
+            }
+        }
+    }
+    else {
+        if (!m_flyCheck) {
+            if (m_fly == 0) {
+                m_flyCheck = true;
+            }
+            else if (m_fly != FLY_NORMAL_SPEED) {
+                m_fly = FLY_NORMAL_SPEED;
+                WriteMemory(m_processHandle, m_gravityAddr, m_fly);
+                setConsoleColor(RED);
+                std::cout << "\nOff: Fly" << std::endl;
+                setConsoleColor(DEFAULT);
+            }
+        }
+        else {
+            if (m_fly != 0) {
+                m_flyCheck = false;
+            }
+        }
+    }
 }

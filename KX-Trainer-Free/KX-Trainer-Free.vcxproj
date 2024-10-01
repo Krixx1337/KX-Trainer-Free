@@ -115,6 +115,7 @@
     <ClInclude Include="hack.h" />
     <ClInclude Include="kx_status.h" />
     <ClInclude Include="memhack.h" />
+    <ClInclude Include="memoryutils.h" />
     <ClInclude Include="patternscan.h" />
     <ClInclude Include="processtools.h" />
   </ItemGroup>

@@ -1,123 +1,126 @@
 #pragma once
-#include "processtools.h"
-#include "patternscan.h"
+
 #include <vector>
-#include <fstream>
 #include <windows.h>
 
 class Hack {
 public:
-    // Main functions
-    void find_process();
-    void base_scan();
+    Hack();
+    ~Hack();
+
     void start();
-    void hacks_loop();
+    void run();
 
 private:
-    // Process-related variables
-    DWORD processID = GetProcID(L"Gw2-64.exe");
-    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, processID);
-    uintptr_t dynamicPtrBaseAddr = 0;
+    // Process-related members
+    DWORD m_processId;
+    HANDLE m_processHandle;
+    uintptr_t m_dynamicPtrBaseAddr;
+    static constexpr wchar_t* GW2_PROCESS_NAME = L"Gw2-64.exe";
 
     // Pattern scans
-    wchar_t* gw2_name = L"Gw2-64.exe";
-    void* baseAddress = nullptr;
-    void* fogAddress = nullptr;
-    void* objectClippingAddress = nullptr;
-    void* betterMovementAddress = nullptr;
+    uintptr_t m_baseAddress;
+    uintptr_t m_fogAddress;
+    uintptr_t m_objectClippingAddress;
+    uintptr_t m_betterMovementAddress;
 
-    // Patterns
-    static inline char BASE_SCAN_PATTERN[] =
-        "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x01";
+    // Patterns and masks
+    static inline char BASE_SCAN_PATTERN[] = "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x01";
     static inline char BASE_SCAN_MASK[] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-
-    static inline char FOG_PATTERN[] =
-        "\x01\x00\x00\x00\x0F\x11\x44\x24\x48\x0F\x10\x07";
+    static inline char FOG_PATTERN[] = "\x01\x00\x00\x00\x0F\x11\x44\x24\x48\x0F\x10\x07"; // todo: fix pattern
     static inline char FOG_MASK[] = "?xxxxxxxxxxx";
-
-    static inline char OBJECT_CLIPPING_PATTERN[] =
-        "\xD3\x0F\x29\x54\x24\x60\x0F\x28\xCA";
+    static inline char OBJECT_CLIPPING_PATTERN[] = "\xD3\x0F\x29\x54\x24\x60\x0F\x28\xCA";
     static inline char OBJECT_CLIPPING_MASK[] = "?xxxxxxxx";
-
-    static inline char BETTER_MOVEMENT_PATTERN[] =
-        "\x75\x00\x00\x28\x4C\x24\x00\x0F\x59\x8B";
+    static inline char BETTER_MOVEMENT_PATTERN[] = "\x75\x00\x00\x28\x4C\x24\x00\x0F\x59\x8B";
     static inline char BETTER_MOVEMENT_MASK[] = "x??xxx?xxx";
 
     // Offsets
-    unsigned int byte1 = 0x50, byte2 = 0x88, byte3 = 0x10, byte4 = 0x68;
+    static constexpr unsigned int BYTE1 = 0x50, BYTE2 = 0x88, BYTE3 = 0x10, BYTE4 = 0x68;
 
     // Pointers and Addresses
-    std::vector<unsigned int> x_offsets = { byte1, byte2, byte3, byte4, 0x120 };
-    std::vector<unsigned int> y_offsets = { byte1, byte2, byte3, byte4, 0x128 };
-    std::vector<unsigned int> z_offsets = { byte1, byte2, byte3, byte4, 0x124 };
-    std::vector<unsigned int> zheight1_offsets = { byte1, byte2, byte3, byte4, 0x118 };
-    std::vector<unsigned int> zheight2_offsets = { byte1, byte2, byte3, byte4, 0x114 };
-    std::vector<unsigned int> gravity_offsets = { byte1, byte2, byte3, 0x1FC };
-    std::vector<unsigned int> speed_offsets = { byte1, byte2, byte3, 0x220 };
-    std::vector<unsigned int> wallclimb_offsets = { byte1, byte2, byte3, 0x204 };
+    std::vector<unsigned int> m_xOffsets;
+    std::vector<unsigned int> m_yOffsets;
+    std::vector<unsigned int> m_zOffsets;
+    std::vector<unsigned int> m_zHeight1Offsets;
+    std::vector<unsigned int> m_zHeight2Offsets;
+    std::vector<unsigned int> m_gravityOffsets;
+    std::vector<unsigned int> m_speedOffsets;
+    std::vector<unsigned int> m_wallClimbOffsets;
 
-    uintptr_t x_addr = FindDMAAddy(hProcess, dynamicPtrBaseAddr, x_offsets);
-    uintptr_t y_addr = FindDMAAddy(hProcess, dynamicPtrBaseAddr, y_offsets);
-    uintptr_t z_addr = FindDMAAddy(hProcess, dynamicPtrBaseAddr, z_offsets);
-    uintptr_t zheight1_addr = FindDMAAddy(hProcess, dynamicPtrBaseAddr, zheight1_offsets);
-    uintptr_t zheight2_addr = FindDMAAddy(hProcess, dynamicPtrBaseAddr, zheight2_offsets);
-    uintptr_t gravity_addr = FindDMAAddy(hProcess, dynamicPtrBaseAddr, gravity_offsets);
-    uintptr_t speed_addr = FindDMAAddy(hProcess, dynamicPtrBaseAddr, speed_offsets);
-    uintptr_t wallclimb_addr = FindDMAAddy(hProcess, dynamicPtrBaseAddr, wallclimb_offsets);
+    uintptr_t m_xAddr;
+    uintptr_t m_yAddr;
+    uintptr_t m_zAddr;
+    uintptr_t m_zHeight1Addr;
+    uintptr_t m_zHeight2Addr;
+    uintptr_t m_gravityAddr;
+    uintptr_t m_speedAddr;
+    uintptr_t m_wallClimbAddr;
 
     // Hack variables
-    float x_value = 0, y_value = 0, z_value = 0;
-    float x_save = 0, y_save = 0, z_save = 0;
-    float speed = 0, turbo_speed = 0;
-    float invisibility = 0, wallclimb = 0, clipping = 0, fly = 0;
-    short object_clipping = 0;
-    short fog = 0;
-    byte better_movement = 0;
-    int speed_freeze = 0;
-    bool fly_check = false, turbo_check = false;
+    float m_xValue, m_yValue, m_zValue;
+    float m_xSave, m_ySave, m_zSave;
+    float m_speed, m_turboSpeed, m_turboCheck;
+    float m_invisibility, m_wallClimb, m_clipping, m_fly;
+    short m_objectClipping;
+    short m_fog;
+    byte m_betterMovement;
+    int m_speedFreeze;
+    bool m_flyCheck;
 
     // Hack functions
-    void refresh_xyz();
-    void read_xyz();
-    void write_xyz();
-    void info();
-    uintptr_t refresh_addr(std::vector<unsigned int> offsets);
-    void set_color(int color);
+    void findProcess();
+    void performBaseScan();
+    void refreshAddresses();
+    void readXYZ();
+    void writeXYZ();
+    void displayInfo();
+    void printWelcomeMessage();
+    uintptr_t refreshAddr(const std::vector<unsigned int>& offsets);
+    void setConsoleColor(int color);
 
     // Hack features
-    void refresh_address();
-    void hacks_fog();
-    void hacks_object_clipping();
-    void hacks_better_movement();
-    void hacks_sprint();
-    void hacks_save_position();
-    void hacks_load_position();
-    void hacks_super_sprint();
-    void hacks_invisibility();
-    void hacks_wall_climb();
-    void hacks_clipping();
-    void hacks_fly();
+    void toggleFog();
+    void toggleObjectClipping();
+    void toggleBetterMovement();
+    void handleSprint();
+    void savePosition();
+    void loadPosition();
+    void handleSuperSprint();
+    void toggleInvisibility();
+    void toggleWallClimb();
+    void toggleClipping();
+    void handleFly();
 
     // Hotkeys
-    int key_savepos = 0x61;  // NUMPAD1
-    int key_loadpos = 0x62;  // NUMPAD2
-    int key_invisibility = 0x63;  // NUMPAD3
-    int key_wallclimb = 0x64;  // NUMPAD4
-    int key_clipping = 0x65;  // NUMPAD5
-    int key_object_clipping = 0x66;  // NUMPAD6
-    int key_better_movement = 0x67;  // NUMPAD7
-    int key_fog = 0x68;  // NUMPAD8
-    int key_super_sprint = 0x6B;  // NUMPAD+
-    int key_sprint = 0xA0;  // Left Shift
-    int key_fly = 0xA2;  // Left Ctrl
+    static constexpr int KEY_SAVEPOS = 0x61;  // NUMPAD1
+    static constexpr int KEY_LOADPOS = 0x62;  // NUMPAD2
+    static constexpr int KEY_INVISIBILITY = 0x63;  // NUMPAD3
+    static constexpr int KEY_WALLCLIMB = 0x64;  // NUMPAD4
+    static constexpr int KEY_CLIPPING = 0x65;  // NUMPAD5
+    static constexpr int KEY_OBJECT_CLIPPING = 0x66;  // NUMPAD6
+    static constexpr int KEY_BETTER_MOVEMENT = 0x67;  // NUMPAD7
+    static constexpr int KEY_FOG = 0x68;  // NUMPAD8
+    static constexpr int KEY_SUPER_SPRINT = 0x6B;  // NUMPAD+
+    static constexpr int KEY_SPRINT = 0xA0;  // Left Shift
+    static constexpr int KEY_FLY = 0xA2;  // Left Ctrl
 
     // Settings
-    float sprint_settings = 12.22;
-    float fly_settings = 20.0;
-    float wallclimb_settings = 20.0;
+    static constexpr float SPRINT_SPEED = 12.22f;
+    static constexpr float NORMAL_SPEED = 9.1875f;
+    static constexpr float SUPER_SPRINT_SPEED = 30.0f;
+    static constexpr float FLY_SPEED = 20.0f;
+    static constexpr float FLY_NORMAL_SPEED = -40.625f;
+    static constexpr float WALLCLIMB_SPEED = 20.0f;
+    static constexpr float WALLCLIMB_NORMAL_SPEED = 2.1875f;
+    static constexpr short OBJECT_CLIPPING_ON = 4059;
+    static constexpr short OBJECT_CLIPPING_OFF = 4051;
+    static constexpr float INVISIBILITY_ON = 2.7f;
+    static constexpr float INVISIBILITY_OFF = 1.0f;
+    static constexpr float CLIPPING_ON = 99999.0f;
+    static constexpr float CLIPPING_OFF = 0.0f;
 
     // Console color management
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    HANDLE m_consoleHandle;
     enum ConsoleColor {
         DEFAULT = 7,
         BLUE = 3,

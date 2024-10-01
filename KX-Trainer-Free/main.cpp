@@ -11,10 +11,8 @@ int main()
 	}
 
 	Hack hack;
-	hack.find_process();
-	hack.base_scan();
 	hack.start();
-	hack.hacks_loop();
+	hack.run();
 
 	return  0;
 }

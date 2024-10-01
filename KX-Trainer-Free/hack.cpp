@@ -2,9 +2,12 @@
 #include "processtools.h"
 #include "patternscan.h"
 #include "memoryutils.h"
+#include "hack_constants.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
+
+using namespace HackConstants;
 
 Hack::Hack() :
     m_xOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x120 },

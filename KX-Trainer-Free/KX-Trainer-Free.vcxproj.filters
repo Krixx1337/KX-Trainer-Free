@@ -74,5 +74,8 @@
     <ClInclude Include="memoryutils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="hack_constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -76,11 +76,11 @@ void Hack::performBaseScan() {
     int scans = 0;
     unsigned int baseValue = 0;
 
-    while (m_dynamicPtrBaseAddr == 0 || baseValue <= 10000) {
+    while (m_dynamicPtrBaseAddr == 0 || baseValue <= BASE_ADDRESS_MIN_VALUE) {
         m_baseAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BASE_SCAN_PATTERN, BASE_SCAN_MASK));
 
         if (m_baseAddress != 0) {
-            m_baseAddress -= 0x8;
+            m_baseAddress -= BASE_ADDRESS_OFFSET;
         }
 
         m_dynamicPtrBaseAddr = m_baseAddress;
@@ -107,7 +107,6 @@ void Hack::performBaseScan() {
     m_betterMovementAddress += 0x2;
     system("cls");
 }
-
 
 void Hack::refreshAddresses() {
     m_xAddr = refreshAddr(m_xOffsets);
@@ -218,12 +217,12 @@ void Hack::toggleBetterMovement() {
         movementToggle = !movementToggle;
         ReadMemory(m_processHandle, m_betterMovementAddress, m_betterMovement);
         if (movementToggle) {
-            m_betterMovement = 0x75;  // Set it to Jne (0x75)
+            m_betterMovement = BETTER_MOVEMENT_ON;
             setConsoleColor(GREEN);
             std::cout << "\nBetter Movement: On" << std::endl;
         }
         else {
-            m_betterMovement = 0x0F;  // Reset to Movaps (0x0F)
+            m_betterMovement = BETTER_MOVEMENT_OFF;
             setConsoleColor(RED);
             std::cout << "\nBetter Movement: Off" << std::endl;
         }

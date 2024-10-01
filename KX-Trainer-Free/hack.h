@@ -23,6 +23,8 @@ private:
     uintptr_t m_fogAddress;
     uintptr_t m_objectClippingAddress;
     uintptr_t m_betterMovementAddress;
+    static constexpr unsigned int BASE_ADDRESS_MIN_VALUE = 10000;
+    static constexpr uintptr_t BASE_ADDRESS_OFFSET = 0x8;
 
     // Patterns and masks
     static inline char BASE_SCAN_PATTERN[] = "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x01";
@@ -61,7 +63,7 @@ private:
     float m_xSave, m_ySave, m_zSave;
     float m_speed, m_turboSpeed, m_turboCheck;
     float m_invisibility, m_wallClimb, m_clipping, m_fly;
-    short m_objectClipping;
+    byte m_objectClipping;
     short m_fog;
     byte m_betterMovement;
     int m_speedFreeze;
@@ -112,12 +114,14 @@ private:
     static constexpr float FLY_NORMAL_SPEED = -40.625f;
     static constexpr float WALLCLIMB_SPEED = 20.0f;
     static constexpr float WALLCLIMB_NORMAL_SPEED = 2.1875f;
-    static constexpr short OBJECT_CLIPPING_ON = 4059;
-    static constexpr short OBJECT_CLIPPING_OFF = 4051;
+    static constexpr byte OBJECT_CLIPPING_ON = 0xDB;  // Fisttp
+    static constexpr byte OBJECT_CLIPPING_OFF = 0xD3; // Ror
     static constexpr float INVISIBILITY_ON = 2.7f;
     static constexpr float INVISIBILITY_OFF = 1.0f;
     static constexpr float CLIPPING_ON = 99999.0f;
     static constexpr float CLIPPING_OFF = 0.0f;
+    static constexpr byte BETTER_MOVEMENT_ON = 0x75;  // Jne
+    static constexpr byte BETTER_MOVEMENT_OFF = 0x0F;  // Movaps
 
     // Console color management
     HANDLE m_consoleHandle;

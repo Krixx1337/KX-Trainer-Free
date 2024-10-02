@@ -2,10 +2,10 @@
 
 #include <string>
 
-class CurlHelper
+class HttpClient
 {
 public:
-    CurlHelper();
+    HttpClient();
 
     struct Response {
         std::string body;

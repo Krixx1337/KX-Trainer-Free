@@ -136,10 +136,11 @@ void Hack::readXYZ() {
     ReadMemory(m_processHandle, m_zAddr, m_zValue);
 }
 
-void Hack::writeXYZ() {
-    WriteMemory(m_processHandle, m_xAddr, m_xValue);
-    WriteMemory(m_processHandle, m_yAddr, m_yValue);
-    WriteMemory(m_processHandle, m_zAddr, m_zValue);
+void Hack::writeXYZ(float xValue, float yValue, float zValue)
+{
+    WriteMemory(m_processHandle, m_xAddr, xValue);
+    WriteMemory(m_processHandle, m_yAddr, yValue);
+    WriteMemory(m_processHandle, m_zAddr, zValue);
 }
 
 void Hack::displayInfo() {
@@ -312,10 +313,7 @@ void Hack::loadPosition() {
             setConsoleColor(DEFAULT);
         }
         else {
-            m_xValue = m_xSave;
-            m_yValue = m_ySave;
-            m_zValue = m_zSave;
-            writeXYZ();
+            writeXYZ(m_xSave, m_ySave, m_zSave);
             setConsoleColor(BLUE);
             std::cout << "\nLoaded Position" << std::endl;
             setConsoleColor(DEFAULT);

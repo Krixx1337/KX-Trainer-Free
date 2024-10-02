@@ -59,7 +59,7 @@ private:
     void scanForPatterns();
     void refreshAddresses();
     void readXYZ();
-    void writeXYZ();
+    void writeXYZ(float xValue, float yValue, float zValue);
     void displayInfo();
     void printWelcomeMessage();
     uintptr_t refreshAddr(const std::vector<unsigned int>& offsets);

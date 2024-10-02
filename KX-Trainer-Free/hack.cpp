@@ -80,16 +80,14 @@ void Hack::performBaseScan() {
     int scans = 0;
     unsigned int baseValue = 0;
 
-    while (m_dynamicPtrBaseAddr == 0 || baseValue <= BASE_ADDRESS_MIN_VALUE) {
+    while (m_baseAddress == 0 || baseValue <= BASE_ADDRESS_MIN_VALUE) {
         m_baseAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BASE_SCAN_PATTERN, BASE_SCAN_MASK));
 
         if (m_baseAddress != 0) {
             m_baseAddress -= BASE_ADDRESS_OFFSET;
         }
 
-        m_dynamicPtrBaseAddr = m_baseAddress;
-
-        if (m_dynamicPtrBaseAddr == 0) {
+        if (m_baseAddress == 0) {
             system("cls");
             scans++;
             std::cout << "Gw2-64.exe process found!" << std::endl;
@@ -176,7 +174,7 @@ void Hack::setConsoleColor(int color) {
 }
 
 uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
-    return FindDMAAddy(m_processHandle, m_dynamicPtrBaseAddr, offsets);
+    return FindDMAAddy(m_processHandle, m_baseAddress, offsets);
 }
 
 void Hack::toggleFog() {

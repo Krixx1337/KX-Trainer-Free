@@ -15,7 +15,6 @@ private:
     // Process-related members
     DWORD m_processId;
     HANDLE m_processHandle;
-    uintptr_t m_dynamicPtrBaseAddr;
 
     // Pattern scans
     uintptr_t m_baseAddress;
@@ -81,8 +80,8 @@ private:
     // Console color management
     HANDLE m_consoleHandle;
     enum ConsoleColor {
-        DEFAULT = 7,
         BLUE = 3,
+        DEFAULT = 7,
         GREEN = 10,
         RED = 12
     };

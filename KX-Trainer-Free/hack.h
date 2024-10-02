@@ -53,6 +53,7 @@ private:
     int m_speedFreeze;
 
     // Hack functions
+    void initializeOffsets();
     void findProcess();
     void performBaseScan();
     void scanForPatterns();

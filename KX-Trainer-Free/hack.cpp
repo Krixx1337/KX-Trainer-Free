@@ -10,16 +10,9 @@
 using namespace HackConstants;
 
 Hack::Hack() :
-    m_xOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x120 },
-    m_yOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x128 },
-    m_zOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x124 },
-    m_zHeight1Offsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x118 },
-    m_zHeight2Offsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x114 },
-    m_gravityOffsets{ BYTE1, BYTE2, BYTE3, 0x1FC },
-    m_speedOffsets{ BYTE1, BYTE2, BYTE3, 0x220 },
-    m_wallClimbOffsets{ BYTE1, BYTE2, BYTE3, 0x204 },
     m_consoleHandle(GetStdHandle(STD_OUTPUT_HANDLE))
 {
+    initializeOffsets();
     findProcess();
     performBaseScan();
     scanForPatterns();
@@ -53,6 +46,18 @@ void Hack::run() {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+}
+
+void Hack::initializeOffsets()
+{
+    m_xOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x120 };
+    m_yOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x128 };
+    m_zOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x124 };
+    m_zHeight1Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x118 };
+    m_zHeight2Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x114 };
+    m_gravityOffsets = { BYTE1, BYTE2, BYTE3, 0x1FC };
+    m_speedOffsets = { BYTE1, BYTE2, BYTE3, 0x220 };
+    m_wallClimbOffsets = { BYTE1, BYTE2, BYTE3, 0x204 };
 }
 
 void Hack::findProcess() {

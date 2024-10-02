@@ -20,7 +20,7 @@ void HackGUI::start()
 void HackGUI::run() {
     while (true) {
         m_hack.refreshAddresses();
-        //checkFog();
+        checkFog();
         checkObjectClipping();
         checkFullStrafe();
         checkSprint();
@@ -36,10 +36,10 @@ void HackGUI::run() {
 }
 
 void HackGUI::checkFog() {
-    if (GetAsyncKeyState(KEY_FOG) & 1) {
+    if (GetAsyncKeyState(KEY_NO_FOG) & 1) {
         m_fogEnabled = !m_fogEnabled;
         m_hack.toggleFog(m_fogEnabled);
-        std::cout << "\nFog: " << (m_fogEnabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "\nNo Fog: " << (m_fogEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -140,7 +140,7 @@ void HackGUI::displayInfo()
         << "NUMPAD5 - Clipping\n"
         << "NUMPAD6 - Object Clipping\n"
         << "NUMPAD7 - Full Strafe\n"
-        //<< "NUMPAD8 - Toggle Fog\n"
+        << "NUMPAD8 - Toggle No Fog\n"
         << "NUMPAD+ - Super Sprint (hold)\n"
         << "CTRL - Fly (hold)\n"
         << "SHIFT - Sprint\n"

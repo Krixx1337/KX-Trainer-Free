@@ -89,6 +89,7 @@ void Hack::performBaseScan() {
 void Hack::scanForPatterns()
 {
     m_fogAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FOG_PATTERN, FOG_MASK));
+    m_fogAddress += 0x3;
     m_objectClippingAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK));
     m_fullStrafeAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FULL_STRAFE_PATTERN, FULL_STRAFE_MASK));
     m_fullStrafeAddress += 0x2;
@@ -124,7 +125,7 @@ uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
 
 void Hack::toggleFog(bool enable) {
     ReadMemory(m_processHandle, m_fogAddress, m_fog);
-    m_fog = enable ? 0 : 1;
+    m_fog = enable ? NO_FOG_ON : NO_FOG_OFF;
     WriteMemory(m_processHandle, m_fogAddress, m_fog);
 }
 

@@ -58,7 +58,7 @@ private:
     float m_speed, m_turboSpeed, m_turboCheck;
     float m_invisibility, m_wallClimb, m_clipping, m_fly;
     byte m_objectClipping;
-    short m_fog;
+    byte m_fog;
     byte m_fullStrafe;
     int m_speedFreeze;
 

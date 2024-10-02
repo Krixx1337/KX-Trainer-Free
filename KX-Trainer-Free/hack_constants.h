@@ -13,8 +13,8 @@ namespace HackConstants {
     // Patterns and masks
     static inline char BASE_SCAN_PATTERN[] = "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x01";
     static inline char BASE_SCAN_MASK[] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-    static inline char FOG_PATTERN[] = "\x01\x00\x00\x00\x0F\x11\x44\x24\x48\x0F\x10\x07"; // todo: fix pattern
-    static inline char FOG_MASK[] = "?xxxxxxxxxxx";
+    static inline char FOG_PATTERN[] = "\xF3\x0F\x11\x00\x24\x00\xF3\x0F\x11\x5C\x24\x00\xF3\x0F\x10\x9C\x24";
+    static inline char FOG_MASK[] = "xxx?x?xxxxx?xxxxx";
     static inline char OBJECT_CLIPPING_PATTERN[] = "\xD3\x0F\x29\x54\x24\x60\x0F\x28\xCA";
     static inline char OBJECT_CLIPPING_MASK[] = "?xxxxxxxx";
     static inline char FULL_STRAFE_PATTERN[] = "\x75\x00\x00\x28\x4C\x24\x00\x0F\x59\x8B";
@@ -31,7 +31,7 @@ namespace HackConstants {
     constexpr int KEY_CLIPPING = 0x65;  // NUMPAD5
     constexpr int KEY_OBJECT_CLIPPING = 0x66;  // NUMPAD6
     constexpr int KEY_FULL_STRAFE = 0x67;  // NUMPAD7
-    constexpr int KEY_FOG = 0x68;  // NUMPAD8
+    constexpr int KEY_NO_FOG = 0x68;  // NUMPAD8
     constexpr int KEY_SUPER_SPRINT = 0x6B;  // NUMPAD+
     constexpr int KEY_SPRINT = 0xA0;  // Left Shift
     constexpr int KEY_FLY = 0xA2;  // Left Ctrl
@@ -52,4 +52,6 @@ namespace HackConstants {
     constexpr float CLIPPING_OFF = 0.0f;
     constexpr byte FULL_STRAFE_ON = 0x75;  // Jne
     constexpr byte FULL_STRAFE_OFF = 0x0F;  // Movaps
+    constexpr byte NO_FOG_ON = 0x54;  // xmm2
+    constexpr byte NO_FOG_OFF = 0x5C;  // xmm3
 }

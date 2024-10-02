@@ -5,40 +5,12 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Source Files\memhack">
-      <UniqueIdentifier>{43d0f4b9-ced7-4f43-9a39-a353b0be4dbc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\processtools">
-      <UniqueIdentifier>{b0c1d60b-ff53-43d4-9eb8-14368f7a4712}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\hack">
-      <UniqueIdentifier>{0976a5ca-663b-487c-9278-34a667fc2e54}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\patternscan">
-      <UniqueIdentifier>{aa2e73c9-cffa-414f-abef-83e51623666a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="hack.cpp">
-      <Filter>Source Files\hack</Filter>
-    </ClCompile>
-    <ClCompile Include="memhack.cpp">
-      <Filter>Source Files\memhack</Filter>
-    </ClCompile>
-    <ClCompile Include="patternscan.cpp">
-      <Filter>Source Files\patternscan</Filter>
-    </ClCompile>
-    <ClCompile Include="processtools.cpp">
-      <Filter>Source Files\processtools</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,20 +20,20 @@
     <ClCompile Include="kx_status.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="memhack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="patternscan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="processtools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="hack.h">
-      <Filter>Source Files\hack</Filter>
-    </ClInclude>
-    <ClInclude Include="memhack.h">
-      <Filter>Source Files\memhack</Filter>
-    </ClInclude>
-    <ClInclude Include="patternscan.h">
-      <Filter>Source Files\patternscan</Filter>
-    </ClInclude>
-    <ClInclude Include="processtools.h">
-      <Filter>Source Files\processtools</Filter>
-    </ClInclude>
     <ClInclude Include="curl_helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -75,6 +47,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="hack_constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="memhack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="patternscan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="processtools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

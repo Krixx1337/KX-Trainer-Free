@@ -1,5 +1,5 @@
 #include "nlohmann/json.hpp"
-#include "curl_helper.h"
+#include "http_client.h"
 #include "curl/curl.h"
 #include <iostream>
 
@@ -17,8 +17,8 @@ bool KXStatus::CheckStatus()
 
     bool verified = false;
 
-    CurlHelper curlHelper;
-    CurlHelper::Response response = curlHelper.GET(Constants::API_URL);
+    HttpClient curlHelper;
+    HttpClient::Response response = curlHelper.GET(Constants::API_URL);
 
     if (response.http_code != 200) {
         std::cout << "An error occurred while checking the status! HTTP code: " << response.http_code << std::endl;

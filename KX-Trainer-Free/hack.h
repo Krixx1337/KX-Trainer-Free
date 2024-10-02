@@ -15,7 +15,6 @@ private:
     // Process-related members
     DWORD m_processId;
     HANDLE m_processHandle;
-    uintptr_t m_dynamicPtrBaseAddr;
 
     // Pattern scans
     uintptr_t m_baseAddress;
@@ -54,11 +53,13 @@ private:
     int m_speedFreeze;
 
     // Hack functions
+    void initializeOffsets();
     void findProcess();
     void performBaseScan();
+    void scanForPatterns();
     void refreshAddresses();
     void readXYZ();
-    void writeXYZ();
+    void writeXYZ(float xValue, float yValue, float zValue);
     void displayInfo();
     void printWelcomeMessage();
     uintptr_t refreshAddr(const std::vector<unsigned int>& offsets);
@@ -80,8 +81,8 @@ private:
     // Console color management
     HANDLE m_consoleHandle;
     enum ConsoleColor {
-        DEFAULT = 7,
         BLUE = 3,
+        DEFAULT = 7,
         GREEN = 10,
         RED = 12
     };

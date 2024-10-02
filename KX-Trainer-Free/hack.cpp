@@ -10,18 +10,12 @@
 using namespace HackConstants;
 
 Hack::Hack() :
-    m_xOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x120 },
-    m_yOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x128 },
-    m_zOffsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x124 },
-    m_zHeight1Offsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x118 },
-    m_zHeight2Offsets{ BYTE1, BYTE2, BYTE3, BYTE4, 0x114 },
-    m_gravityOffsets{ BYTE1, BYTE2, BYTE3, 0x1FC },
-    m_speedOffsets{ BYTE1, BYTE2, BYTE3, 0x220 },
-    m_wallClimbOffsets{ BYTE1, BYTE2, BYTE3, 0x204 },
     m_consoleHandle(GetStdHandle(STD_OUTPUT_HANDLE))
 {
+    initializeOffsets();
     findProcess();
     performBaseScan();
+    scanForPatterns();
 }
 
 Hack::~Hack() {
@@ -54,6 +48,18 @@ void Hack::run() {
     }
 }
 
+void Hack::initializeOffsets()
+{
+    m_xOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x120 };
+    m_yOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x128 };
+    m_zOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x124 };
+    m_zHeight1Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x118 };
+    m_zHeight2Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x114 };
+    m_gravityOffsets = { BYTE1, BYTE2, BYTE3, 0x1FC };
+    m_speedOffsets = { BYTE1, BYTE2, BYTE3, 0x220 };
+    m_wallClimbOffsets = { BYTE1, BYTE2, BYTE3, 0x204 };
+}
+
 void Hack::findProcess() {
     m_processId = GetProcID(GW2_PROCESS_NAME);
     m_processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, m_processId);
@@ -79,16 +85,14 @@ void Hack::performBaseScan() {
     int scans = 0;
     unsigned int baseValue = 0;
 
-    while (m_dynamicPtrBaseAddr == 0 || baseValue <= BASE_ADDRESS_MIN_VALUE) {
+    while (m_baseAddress == 0 || baseValue <= BASE_ADDRESS_MIN_VALUE) {
         m_baseAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BASE_SCAN_PATTERN, BASE_SCAN_MASK));
 
         if (m_baseAddress != 0) {
             m_baseAddress -= BASE_ADDRESS_OFFSET;
         }
 
-        m_dynamicPtrBaseAddr = m_baseAddress;
-
-        if (m_dynamicPtrBaseAddr == 0) {
+        if (m_baseAddress == 0) {
             system("cls");
             scans++;
             std::cout << "Gw2-64.exe process found!" << std::endl;
@@ -104,11 +108,15 @@ void Hack::performBaseScan() {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
+    system("cls");
+}
+
+void Hack::scanForPatterns()
+{
     m_fogAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FOG_PATTERN, FOG_MASK));
     m_objectClippingAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK));
     m_betterMovementAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BETTER_MOVEMENT_PATTERN, BETTER_MOVEMENT_MASK));
     m_betterMovementAddress += 0x2;
-    system("cls");
 }
 
 void Hack::refreshAddresses() {
@@ -128,10 +136,11 @@ void Hack::readXYZ() {
     ReadMemory(m_processHandle, m_zAddr, m_zValue);
 }
 
-void Hack::writeXYZ() {
-    WriteMemory(m_processHandle, m_xAddr, m_xValue);
-    WriteMemory(m_processHandle, m_yAddr, m_yValue);
-    WriteMemory(m_processHandle, m_zAddr, m_zValue);
+void Hack::writeXYZ(float xValue, float yValue, float zValue)
+{
+    WriteMemory(m_processHandle, m_xAddr, xValue);
+    WriteMemory(m_processHandle, m_yAddr, yValue);
+    WriteMemory(m_processHandle, m_zAddr, zValue);
 }
 
 void Hack::displayInfo() {
@@ -143,7 +152,7 @@ void Hack::displayInfo() {
         << "NUMPAD5 - Clipping\n"
         << "NUMPAD6 - Object Clipping\n"
         << "NUMPAD7 - Better Movement\n"
-        << "NUMPAD8 - Toggle Fog\n"
+        //<< "NUMPAD8 - Toggle Fog\n"
         << "NUMPAD+ - Super Sprint (hold)\n"
         << "CTRL - Fly (hold)\n"
         << "SHIFT - Sprint\n"
@@ -171,7 +180,7 @@ void Hack::setConsoleColor(int color) {
 }
 
 uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
-    return FindDMAAddy(m_processHandle, m_dynamicPtrBaseAddr, offsets);
+    return FindDMAAddy(m_processHandle, m_baseAddress, offsets);
 }
 
 void Hack::toggleFog() {
@@ -304,10 +313,7 @@ void Hack::loadPosition() {
             setConsoleColor(DEFAULT);
         }
         else {
-            m_xValue = m_xSave;
-            m_yValue = m_ySave;
-            m_zValue = m_zSave;
-            writeXYZ();
+            writeXYZ(m_xSave, m_ySave, m_zSave);
             setConsoleColor(BLUE);
             std::cout << "\nLoaded Position" << std::endl;
             setConsoleColor(DEFAULT);

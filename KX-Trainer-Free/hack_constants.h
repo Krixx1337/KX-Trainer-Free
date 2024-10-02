@@ -13,7 +13,7 @@ namespace HackConstants {
     // Patterns and masks
     static inline char BASE_SCAN_PATTERN[] = "\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x00\x00\x00\x00\x01";
     static inline char BASE_SCAN_MASK[] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-    static inline char FOG_PATTERN[] = "\x01\x00\x00\x00\x0F\x11\x44\x24\x48\x0F\x10\x07";
+    static inline char FOG_PATTERN[] = "\x01\x00\x00\x00\x0F\x11\x44\x24\x48\x0F\x10\x07"; // todo: fix pattern
     static inline char FOG_MASK[] = "?xxxxxxxxxxx";
     static inline char OBJECT_CLIPPING_PATTERN[] = "\xD3\x0F\x29\x54\x24\x60\x0F\x28\xCA";
     static inline char OBJECT_CLIPPING_MASK[] = "?xxxxxxxx";

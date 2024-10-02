@@ -17,8 +17,8 @@ namespace HackConstants {
     static inline char FOG_MASK[] = "?xxxxxxxxxxx";
     static inline char OBJECT_CLIPPING_PATTERN[] = "\xD3\x0F\x29\x54\x24\x60\x0F\x28\xCA";
     static inline char OBJECT_CLIPPING_MASK[] = "?xxxxxxxx";
-    static inline char BETTER_MOVEMENT_PATTERN[] = "\x75\x00\x00\x28\x4C\x24\x00\x0F\x59\x8B";
-    static inline char BETTER_MOVEMENT_MASK[] = "x??xxx?xxx";
+    static inline char FULL_STRAFE_PATTERN[] = "\x75\x00\x00\x28\x4C\x24\x00\x0F\x59\x8B";
+    static inline char FULL_STRAFE_MASK[] = "x??xxx?xxx";
 
     // Offsets
     constexpr unsigned int BYTE1 = 0x50, BYTE2 = 0x88, BYTE3 = 0x10, BYTE4 = 0x68;
@@ -30,7 +30,7 @@ namespace HackConstants {
     constexpr int KEY_WALLCLIMB = 0x64;  // NUMPAD4
     constexpr int KEY_CLIPPING = 0x65;  // NUMPAD5
     constexpr int KEY_OBJECT_CLIPPING = 0x66;  // NUMPAD6
-    constexpr int KEY_BETTER_MOVEMENT = 0x67;  // NUMPAD7
+    constexpr int KEY_FULL_STRAFE = 0x67;  // NUMPAD7
     constexpr int KEY_FOG = 0x68;  // NUMPAD8
     constexpr int KEY_SUPER_SPRINT = 0x6B;  // NUMPAD+
     constexpr int KEY_SPRINT = 0xA0;  // Left Shift
@@ -50,6 +50,6 @@ namespace HackConstants {
     constexpr float INVISIBILITY_OFF = 1.0f;
     constexpr float CLIPPING_ON = 99999.0f;
     constexpr float CLIPPING_OFF = 0.0f;
-    constexpr byte BETTER_MOVEMENT_ON = 0x75;  // Jne
-    constexpr byte BETTER_MOVEMENT_OFF = 0x0F;  // Movaps
+    constexpr byte FULL_STRAFE_ON = 0x75;  // Jne
+    constexpr byte FULL_STRAFE_OFF = 0x0F;  // Movaps
 }

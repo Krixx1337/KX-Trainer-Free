@@ -20,7 +20,7 @@ private:
     uintptr_t m_baseAddress;
     uintptr_t m_fogAddress;
     uintptr_t m_objectClippingAddress;
-    uintptr_t m_betterMovementAddress;
+    uintptr_t m_fullStrafeAddress;
 
     // Pointers and Addresses
     std::vector<unsigned int> m_xOffsets;
@@ -49,7 +49,7 @@ private:
     bool m_flyCheck;
     byte m_objectClipping;
     short m_fog;
-    byte m_betterMovement;
+    byte m_fullStrafe;
     int m_speedFreeze;
 
     // Hack functions
@@ -68,7 +68,7 @@ private:
     // Hack features
     void toggleFog();
     void toggleObjectClipping();
-    void toggleBetterMovement();
+    void toggleFullStrafe();
     void handleSprint();
     void savePosition();
     void loadPosition();

@@ -34,7 +34,7 @@ void Hack::run() {
         refreshAddresses();
         //toggleFog();
         toggleObjectClipping();
-        toggleBetterMovement();
+        toggleFullStrafe();
         handleSprint();
         savePosition();
         loadPosition();
@@ -115,8 +115,8 @@ void Hack::scanForPatterns()
 {
     m_fogAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FOG_PATTERN, FOG_MASK));
     m_objectClippingAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK));
-    m_betterMovementAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BETTER_MOVEMENT_PATTERN, BETTER_MOVEMENT_MASK));
-    m_betterMovementAddress += 0x2;
+    m_fullStrafeAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FULL_STRAFE_PATTERN, FULL_STRAFE_MASK));
+    m_fullStrafeAddress += 0x2;
 }
 
 void Hack::refreshAddresses() {
@@ -151,7 +151,7 @@ void Hack::displayInfo() {
         << "NUMPAD4 - Wall Climb\n"
         << "NUMPAD5 - Clipping\n"
         << "NUMPAD6 - Object Clipping\n"
-        << "NUMPAD7 - Better Movement\n"
+        << "NUMPAD7 - Full Strafe\n"
         //<< "NUMPAD8 - Toggle Fog\n"
         << "NUMPAD+ - Super Sprint (hold)\n"
         << "CTRL - Fly (hold)\n"
@@ -223,22 +223,22 @@ void Hack::toggleObjectClipping() {
     }
 }
 
-void Hack::toggleBetterMovement() {
+void Hack::toggleFullStrafe() {
     static bool movementToggle = false;
-    if (GetAsyncKeyState(KEY_BETTER_MOVEMENT) & 1) {
+    if (GetAsyncKeyState(KEY_FULL_STRAFE) & 1) {
         movementToggle = !movementToggle;
-        ReadMemory(m_processHandle, m_betterMovementAddress, m_betterMovement);
+        ReadMemory(m_processHandle, m_fullStrafeAddress, m_fullStrafe);
         if (movementToggle) {
-            m_betterMovement = BETTER_MOVEMENT_ON;
+            m_fullStrafe = FULL_STRAFE_ON;
             setConsoleColor(GREEN);
-            std::cout << "\nBetter Movement: On" << std::endl;
+            std::cout << "\nFull Strafe: On" << std::endl;
         }
         else {
-            m_betterMovement = BETTER_MOVEMENT_OFF;
+            m_fullStrafe = FULL_STRAFE_OFF;
             setConsoleColor(RED);
-            std::cout << "\nBetter Movement: Off" << std::endl;
+            std::cout << "\nFull Strafe: Off" << std::endl;
         }
-        WriteMemory(m_processHandle, m_betterMovementAddress, m_betterMovement);
+        WriteMemory(m_processHandle, m_fullStrafeAddress, m_fullStrafe);
         setConsoleColor(DEFAULT);
     }
 }

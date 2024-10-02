@@ -3,14 +3,13 @@
 #include "patternscan.h"
 #include "memoryutils.h"
 #include "hack_constants.h"
-#include <iostream>
 #include <thread>
 #include <chrono>
+#include <iostream>
 
 using namespace HackConstants;
 
-Hack::Hack() :
-    m_consoleHandle(GetStdHandle(STD_OUTPUT_HANDLE))
+Hack::Hack()
 {
     initializeOffsets();
     findProcess();
@@ -21,30 +20,6 @@ Hack::Hack() :
 Hack::~Hack() {
     if (m_processHandle) {
         CloseHandle(m_processHandle);
-    }
-}
-
-void Hack::start() {
-    printWelcomeMessage();
-    displayInfo();
-}
-
-void Hack::run() {
-    while (true) {
-        refreshAddresses();
-        //toggleFog();
-        toggleObjectClipping();
-        toggleFullStrafe();
-        handleSprint();
-        savePosition();
-        loadPosition();
-        handleSuperSprint();
-        toggleInvisibility();
-        toggleWallClimb();
-        toggleClipping();
-        handleFly();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 
@@ -143,141 +118,49 @@ void Hack::writeXYZ(float xValue, float yValue, float zValue)
     WriteMemory(m_processHandle, m_zAddr, zValue);
 }
 
-void Hack::displayInfo() {
-    std::cout << "[Hotkeys]\n"
-        << "NUMPAD1 - Save Position\n"
-        << "NUMPAD2 - Load Position\n"
-        << "NUMPAD3 - Invisibility (for mobs)\n"
-        << "NUMPAD4 - Wall Climb\n"
-        << "NUMPAD5 - Clipping\n"
-        << "NUMPAD6 - Object Clipping\n"
-        << "NUMPAD7 - Full Strafe\n"
-        //<< "NUMPAD8 - Toggle Fog\n"
-        << "NUMPAD+ - Super Sprint (hold)\n"
-        << "CTRL - Fly (hold)\n"
-        << "SHIFT - Sprint\n"
-        << "[Logs]\n";
-}
-
-void Hack::printWelcomeMessage() {
-    std::cout << "[";
-    setConsoleColor(BLUE);
-    std::cout << "KX Trainer by Krixx";
-    setConsoleColor(DEFAULT);
-    std::cout << "]";
-
-    std::cout << "\nIf you like the trainer, consider upgrading to the paid version at ";
-    setConsoleColor(BLUE);
-    std::cout << "kxtools.xyz";
-    setConsoleColor(DEFAULT);
-    std::cout << " for more features and support!" << std::endl;
-
-    std::cout << "\nGw2-64.exe process found!\n" << std::endl;
-}
-
-void Hack::setConsoleColor(int color) {
-    SetConsoleTextAttribute(m_consoleHandle, color);
-}
-
 uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
     return FindDMAAddy(m_processHandle, m_baseAddress, offsets);
 }
 
-void Hack::toggleFog() {
-    static bool fogToggle = false;
-    if (GetAsyncKeyState(KEY_FOG) & 1) {
-        fogToggle = !fogToggle;
-        ReadMemory(m_processHandle, m_fogAddress, m_fog);
-        if (fogToggle) {
-            m_fog = 0;
-            setConsoleColor(RED);
-            std::cout << "\nFog: Off" << std::endl;
-        }
-        else {
-            m_fog = 1;
-            setConsoleColor(GREEN);
-            std::cout << "\nFog: On" << std::endl;
-        }
-        WriteMemory(m_processHandle, m_fogAddress, m_fog);
-        setConsoleColor(DEFAULT);
-    }
+void Hack::toggleFog(bool enable) {
+    ReadMemory(m_processHandle, m_fogAddress, m_fog);
+    m_fog = enable ? 0 : 1;
+    WriteMemory(m_processHandle, m_fogAddress, m_fog);
 }
 
-void Hack::toggleObjectClipping() {
-    static bool objectClippingToggle = false;
-    if (GetAsyncKeyState(KEY_OBJECT_CLIPPING) & 1) {
-        objectClippingToggle = !objectClippingToggle;
-        ReadMemory(m_processHandle, m_objectClippingAddress, m_objectClipping);
-        if (objectClippingToggle) {
-            m_objectClipping = OBJECT_CLIPPING_ON;
-            setConsoleColor(GREEN);
-            std::cout << "\nObject Clipping: On" << std::endl;
-        }
-        else {
-            m_objectClipping = OBJECT_CLIPPING_OFF;
-            setConsoleColor(RED);
-            std::cout << "\nObject Clipping: Off" << std::endl;
-        }
-        WriteMemory(m_processHandle, m_objectClippingAddress, m_objectClipping);
-        setConsoleColor(DEFAULT);
-    }
+void Hack::toggleObjectClipping(bool enable) {
+    ReadMemory(m_processHandle, m_objectClippingAddress, m_objectClipping);
+    m_objectClipping = enable ? OBJECT_CLIPPING_ON : OBJECT_CLIPPING_OFF;
+    WriteMemory(m_processHandle, m_objectClippingAddress, m_objectClipping);
 }
 
-void Hack::toggleFullStrafe() {
-    static bool movementToggle = false;
-    if (GetAsyncKeyState(KEY_FULL_STRAFE) & 1) {
-        movementToggle = !movementToggle;
-        ReadMemory(m_processHandle, m_fullStrafeAddress, m_fullStrafe);
-        if (movementToggle) {
-            m_fullStrafe = FULL_STRAFE_ON;
-            setConsoleColor(GREEN);
-            std::cout << "\nFull Strafe: On" << std::endl;
-        }
-        else {
-            m_fullStrafe = FULL_STRAFE_OFF;
-            setConsoleColor(RED);
-            std::cout << "\nFull Strafe: Off" << std::endl;
-        }
-        WriteMemory(m_processHandle, m_fullStrafeAddress, m_fullStrafe);
-        setConsoleColor(DEFAULT);
-    }
+void Hack::toggleFullStrafe(bool enable) {
+    ReadMemory(m_processHandle, m_fullStrafeAddress, m_fullStrafe);
+    m_fullStrafe = enable ? FULL_STRAFE_ON : FULL_STRAFE_OFF;
+    WriteMemory(m_processHandle, m_fullStrafeAddress, m_fullStrafe);
 }
 
-void Hack::handleSprint() {
-    if (m_speedFreeze == 1) {
+void Hack::handleSprint(bool enable) {
+    if (enable) {
         ReadMemory(m_processHandle, m_speedAddr, m_speed);
         if (m_speed < SPRINT_SPEED) {
             m_speed = SPRINT_SPEED;
             WriteMemory(m_processHandle, m_speedAddr, m_speed);
         }
+        m_speedFreeze = 1;
     }
-
-    if (GetAsyncKeyState(KEY_SPRINT) & 1) {
-        ReadMemory(m_processHandle, m_speedAddr, m_speed);
-        if (m_speed < SPRINT_SPEED) {
-            m_speedFreeze = 1;
-            setConsoleColor(GREEN);
-            std::cout << "\nOn: Sprint" << std::endl;
-        }
-        else {
-            m_speedFreeze = 0;
-            m_speed = NORMAL_SPEED;
-            WriteMemory(m_processHandle, m_speedAddr, m_speed);
-            setConsoleColor(RED);
-            std::cout << "\nOff: Sprint" << std::endl;
-        }
-        setConsoleColor(DEFAULT);
+    else {
+        m_speedFreeze = 0;
+        m_speed = NORMAL_SPEED;
+        WriteMemory(m_processHandle, m_speedAddr, m_speed);
     }
 }
 
-void Hack::handleSuperSprint() {
-    if (GetAsyncKeyState(KEY_SUPER_SPRINT)) {
+void Hack::handleSuperSprint(bool enable) {
+    if (enable) {
         if (!m_turboCheck) {
             ReadMemory(m_processHandle, m_speedAddr, m_speed);
             m_turboSpeed = m_speed;
-            setConsoleColor(GREEN);
-            std::cout << "\nOn: Super Sprint" << std::endl;
-            setConsoleColor(DEFAULT);
         }
         m_speed = SUPER_SPRINT_SPEED;
         WriteMemory(m_processHandle, m_speedAddr, m_speed);
@@ -287,138 +170,60 @@ void Hack::handleSuperSprint() {
         m_speed = m_turboSpeed;
         WriteMemory(m_processHandle, m_speedAddr, m_speed);
         m_turboCheck = false;
-        setConsoleColor(RED);
-        std::cout << "\nOff: Super Sprint" << std::endl;
-        setConsoleColor(DEFAULT);
     }
 }
 
 void Hack::savePosition() {
-    if (GetAsyncKeyState(KEY_SAVEPOS) & 1) {
-        readXYZ();
-        m_xSave = m_xValue;
-        m_ySave = m_yValue;
-        m_zSave = m_zValue;
-        setConsoleColor(BLUE);
-        std::cout << "\nSaved Position" << std::endl;
-        setConsoleColor(DEFAULT);
-    }
+    readXYZ();
+    m_xSave = m_xValue;
+    m_ySave = m_yValue;
+    m_zSave = m_zValue;
 }
 
 void Hack::loadPosition() {
-    if (GetAsyncKeyState(KEY_LOADPOS) & 1) {
-        if (m_xSave == 0 && m_ySave == 0 && m_zSave == 0) {
-            setConsoleColor(BLUE);
-            std::cout << "\nYou must first save your position" << std::endl;
-            setConsoleColor(DEFAULT);
-        }
-        else {
-            writeXYZ(m_xSave, m_ySave, m_zSave);
-            setConsoleColor(BLUE);
-            std::cout << "\nLoaded Position" << std::endl;
-            setConsoleColor(DEFAULT);
-        }
+    if (m_xSave != 0 || m_ySave != 0 || m_zSave != 0) {
+        writeXYZ(m_xSave, m_ySave, m_zSave);
     }
 }
 
-void Hack::toggleInvisibility() {
-    static bool invisibilityToggle = false;
-    if (GetAsyncKeyState(KEY_INVISIBILITY) & 1) {
-        invisibilityToggle = !invisibilityToggle;
-        ReadMemory(m_processHandle, m_zHeight1Addr, m_invisibility);
-        if (invisibilityToggle) {
-            m_invisibility = INVISIBILITY_ON;
-            WriteMemory(m_processHandle, m_zHeight1Addr, m_invisibility);
-            setConsoleColor(GREEN);
-            std::cout << "\nOn: Invisibility" << std::endl;
-        }
-        else {
-            ReadMemory(m_processHandle, m_yAddr, m_yValue);
-            m_yValue += 3.0f;
-            WriteMemory(m_processHandle, m_yAddr, m_yValue);
-            m_invisibility = INVISIBILITY_OFF;
-            WriteMemory(m_processHandle, m_zHeight1Addr, m_invisibility);
-            setConsoleColor(RED);
-            std::cout << "\nOff: Invisibility" << std::endl;
-        }
-        setConsoleColor(DEFAULT);
+void Hack::toggleInvisibility(bool enable) {
+    ReadMemory(m_processHandle, m_zHeight1Addr, m_invisibility);
+    if (enable) {
+        m_invisibility = INVISIBILITY_ON;
     }
+    else {
+        ReadMemory(m_processHandle, m_yAddr, m_yValue);
+        m_yValue += 3.0f;
+        WriteMemory(m_processHandle, m_yAddr, m_yValue);
+        m_invisibility = INVISIBILITY_OFF;
+    }
+    WriteMemory(m_processHandle, m_zHeight1Addr, m_invisibility);
 }
 
-void Hack::toggleWallClimb() {
-    static bool wallClimbToggle = false;
-    if (GetAsyncKeyState(KEY_WALLCLIMB) & 1) {
-        wallClimbToggle = !wallClimbToggle;
-        ReadMemory(m_processHandle, m_wallClimbAddr, m_wallClimb);
-        if (wallClimbToggle) {
-            m_wallClimb = WALLCLIMB_SPEED;
-            WriteMemory(m_processHandle, m_wallClimbAddr, m_wallClimb);
-            setConsoleColor(GREEN);
-            std::cout << "\nOn: Wall Climb" << std::endl;
-        }
-        else {
-            m_wallClimb = WALLCLIMB_NORMAL_SPEED;
-            WriteMemory(m_processHandle, m_wallClimbAddr, m_wallClimb);
-            setConsoleColor(RED);
-            std::cout << "\nOff: Wall Climb" << std::endl;
-        }
-        setConsoleColor(DEFAULT);
-    }
+void Hack::toggleWallClimb(bool enable) {
+    ReadMemory(m_processHandle, m_wallClimbAddr, m_wallClimb);
+    m_wallClimb = enable ? WALLCLIMB_SPEED : WALLCLIMB_NORMAL_SPEED;
+    WriteMemory(m_processHandle, m_wallClimbAddr, m_wallClimb);
 }
 
-void Hack::toggleClipping() {
-    static bool clippingToggle = false;
-    if (GetAsyncKeyState(KEY_CLIPPING) & 1) {
-        clippingToggle = !clippingToggle;
-        ReadMemory(m_processHandle, m_zHeight2Addr, m_clipping);
-        if (clippingToggle) {
-            m_clipping = CLIPPING_ON;
-            WriteMemory(m_processHandle, m_zHeight2Addr, m_clipping);
-            setConsoleColor(GREEN);
-            std::cout << "\nOn: Clipping" << std::endl;
-        }
-        else {
-            m_clipping = CLIPPING_OFF;
-            WriteMemory(m_processHandle, m_zHeight2Addr, m_clipping);
-            setConsoleColor(RED);
-            std::cout << "\nOff: Clipping" << std::endl;
-        }
-        setConsoleColor(DEFAULT);
-    }
+void Hack::toggleClipping(bool enable) {
+    ReadMemory(m_processHandle, m_zHeight2Addr, m_clipping);
+    m_clipping = enable ? CLIPPING_ON : CLIPPING_OFF;
+    WriteMemory(m_processHandle, m_zHeight2Addr, m_clipping);
 }
 
-void Hack::handleFly() {
+void Hack::handleFly(bool enable) {
     ReadMemory(m_processHandle, m_gravityAddr, m_fly);
-    bool flyToggle = GetAsyncKeyState(KEY_FLY);
-
-    if (flyToggle) {
-        if (!m_flyCheck) {
-            if (m_fly < FLY_SPEED) {
-                m_fly = FLY_SPEED;
-                WriteMemory(m_processHandle, m_gravityAddr, m_fly);
-                setConsoleColor(GREEN);
-                std::cout << "\nOn: Fly" << std::endl;
-                setConsoleColor(DEFAULT);
-            }
+    if (enable) {
+        if (m_fly < FLY_SPEED) {
+            m_fly = FLY_SPEED;
+            WriteMemory(m_processHandle, m_gravityAddr, m_fly);
         }
     }
     else {
-        if (!m_flyCheck) {
-            if (m_fly == 0) {
-                m_flyCheck = true;
-            }
-            else if (m_fly != FLY_NORMAL_SPEED) {
-                m_fly = FLY_NORMAL_SPEED;
-                WriteMemory(m_processHandle, m_gravityAddr, m_fly);
-                setConsoleColor(RED);
-                std::cout << "\nOff: Fly" << std::endl;
-                setConsoleColor(DEFAULT);
-            }
-        }
-        else {
-            if (m_fly != 0) {
-                m_flyCheck = false;
-            }
+        if (m_fly != FLY_NORMAL_SPEED) {
+            m_fly = FLY_NORMAL_SPEED;
+            WriteMemory(m_processHandle, m_gravityAddr, m_fly);
         }
     }
 }

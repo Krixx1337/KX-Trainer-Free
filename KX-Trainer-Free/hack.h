@@ -8,8 +8,19 @@ public:
     Hack();
     ~Hack();
 
-    void start();
-    void run();
+    // Hack features
+    void refreshAddresses();
+    void toggleFog(bool enable);
+    void toggleObjectClipping(bool enable);
+    void toggleFullStrafe(bool enable);
+    void handleSprint(bool enable);
+    void handleSuperSprint(bool enable);
+    void savePosition();
+    void loadPosition();
+    void toggleInvisibility(bool enable);
+    void toggleWallClimb(bool enable);
+    void toggleClipping(bool enable);
+    void handleFly(bool enable);
 
 private:
     // Process-related members
@@ -46,7 +57,6 @@ private:
     float m_xSave, m_ySave, m_zSave;
     float m_speed, m_turboSpeed, m_turboCheck;
     float m_invisibility, m_wallClimb, m_clipping, m_fly;
-    bool m_flyCheck;
     byte m_objectClipping;
     short m_fog;
     byte m_fullStrafe;
@@ -57,33 +67,7 @@ private:
     void findProcess();
     void performBaseScan();
     void scanForPatterns();
-    void refreshAddresses();
     void readXYZ();
     void writeXYZ(float xValue, float yValue, float zValue);
-    void displayInfo();
-    void printWelcomeMessage();
     uintptr_t refreshAddr(const std::vector<unsigned int>& offsets);
-    void setConsoleColor(int color);
-
-    // Hack features
-    void toggleFog();
-    void toggleObjectClipping();
-    void toggleFullStrafe();
-    void handleSprint();
-    void savePosition();
-    void loadPosition();
-    void handleSuperSprint();
-    void toggleInvisibility();
-    void toggleWallClimb();
-    void toggleClipping();
-    void handleFly();
-
-    // Console color management
-    HANDLE m_consoleHandle;
-    enum ConsoleColor {
-        BLUE = 3,
-        DEFAULT = 7,
-        GREEN = 10,
-        RED = 12
-    };
 };

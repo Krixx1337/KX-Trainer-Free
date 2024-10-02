@@ -101,6 +101,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="hack_gui.cpp" />
     <ClCompile Include="http_client.cpp" />
     <ClCompile Include="kx_status.cpp" />
     <ClCompile Include="main.cpp" />
@@ -111,6 +112,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="constants.h" />
+    <ClInclude Include="hack_gui.h" />
     <ClInclude Include="http_client.h" />
     <ClInclude Include="hack.h" />
     <ClInclude Include="hack_constants.h" />

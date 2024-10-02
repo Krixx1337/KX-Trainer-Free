@@ -1,4 +1,5 @@
 ﻿#include "hack.h"
+#include "hack_gui.h"
 #include "kx_status.h"
 
 int main()
@@ -11,8 +12,9 @@ int main()
 	}
 
 	Hack hack;
-	hack.start();
-	hack.run();
+	HackGUI gui(hack);
+	gui.start();
+	gui.run();
 
 	return  0;
 }

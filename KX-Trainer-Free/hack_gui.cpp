@@ -6,8 +6,9 @@
 
 using namespace HackConstants;
 
-HackGUI::HackGUI(Hack& hack) : m_hack(hack), m_consoleHandle(GetStdHandle(STD_OUTPUT_HANDLE))
+HackGUI::HackGUI(Hack& hack) : m_hack(hack)
 {
+    m_consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 }
 
 void HackGUI::start()
@@ -38,7 +39,7 @@ void HackGUI::checkFog() {
     if (GetAsyncKeyState(KEY_FOG) & 1) {
         m_fogEnabled = !m_fogEnabled;
         m_hack.toggleFog(m_fogEnabled);
-        std::cout << "Fog: " << (m_fogEnabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "\nFog: " << (m_fogEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -46,7 +47,7 @@ void HackGUI::checkObjectClipping() {
     if (GetAsyncKeyState(KEY_OBJECT_CLIPPING) & 1) {
         m_objectClippingEnabled = !m_objectClippingEnabled;
         m_hack.toggleObjectClipping(m_objectClippingEnabled);
-        std::cout << "Object Clipping: " << (m_objectClippingEnabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "\nObject Clipping: " << (m_objectClippingEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -54,7 +55,7 @@ void HackGUI::checkFullStrafe() {
     if (GetAsyncKeyState(KEY_FULL_STRAFE) & 1) {
         m_fullStrafeEnabled = !m_fullStrafeEnabled;
         m_hack.toggleFullStrafe(m_fullStrafeEnabled);
-        std::cout << "Full Strafe: " << (m_fullStrafeEnabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "\nFull Strafe: " << (m_fullStrafeEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -62,7 +63,7 @@ void HackGUI::checkSprint() {
     if (GetAsyncKeyState(KEY_SPRINT) & 1) {
         m_sprintEnabled = !m_sprintEnabled;
         m_hack.handleSprint(m_sprintEnabled);
-        std::cout << "Sprint: " << (m_sprintEnabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "\nSprint: " << (m_sprintEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -83,11 +84,11 @@ void HackGUI::checkSuperSprint() {
 void HackGUI::checkPositionKeys() {
     if (GetAsyncKeyState(KEY_SAVEPOS) & 1) {
         m_hack.savePosition();
-        std::cout << "Position Saved." << std::endl;
+        std::cout << "\nPosition Saved." << std::endl;
     }
     if (GetAsyncKeyState(KEY_LOADPOS) & 1) {
         m_hack.loadPosition();
-        std::cout << "Position Loaded." << std::endl;
+        std::cout << "\nPosition Loaded." << std::endl;
     }
 }
 
@@ -95,7 +96,7 @@ void HackGUI::checkInvisibility() {
     if (GetAsyncKeyState(KEY_INVISIBILITY) & 1) {
         m_invisibilityEnabled = !m_invisibilityEnabled;
         m_hack.toggleInvisibility(m_invisibilityEnabled);
-        std::cout << "Invisibility: " << (m_invisibilityEnabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "\nInvisibility: " << (m_invisibilityEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -103,7 +104,7 @@ void HackGUI::checkWallClimb() {
     if (GetAsyncKeyState(KEY_WALLCLIMB) & 1) {
         m_wallClimbEnabled = !m_wallClimbEnabled;
         m_hack.toggleWallClimb(m_wallClimbEnabled);
-        std::cout << "Wall Climb: " << (m_wallClimbEnabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "\nWall Climb: " << (m_wallClimbEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -111,7 +112,7 @@ void HackGUI::checkClipping() {
     if (GetAsyncKeyState(KEY_CLIPPING) & 1) {
         m_clippingEnabled = !m_clippingEnabled;
         m_hack.toggleClipping(m_clippingEnabled);
-        std::cout << "Clipping: " << (m_clippingEnabled ? "Enabled" : "Disabled") << std::endl;
+        std::cout << "\nClipping: " << (m_clippingEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 

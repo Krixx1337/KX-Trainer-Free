@@ -22,6 +22,7 @@ Hack::Hack() :
 {
     findProcess();
     performBaseScan();
+    scanForPatterns();
 }
 
 Hack::~Hack() {
@@ -104,11 +105,15 @@ void Hack::performBaseScan() {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
+    system("cls");
+}
+
+void Hack::scanForPatterns()
+{
     m_fogAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FOG_PATTERN, FOG_MASK));
     m_objectClippingAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK));
     m_betterMovementAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BETTER_MOVEMENT_PATTERN, BETTER_MOVEMENT_MASK));
     m_betterMovementAddress += 0x2;
-    system("cls");
 }
 
 void Hack::refreshAddresses() {
@@ -143,7 +148,7 @@ void Hack::displayInfo() {
         << "NUMPAD5 - Clipping\n"
         << "NUMPAD6 - Object Clipping\n"
         << "NUMPAD7 - Better Movement\n"
-        << "NUMPAD8 - Toggle Fog\n"
+        //<< "NUMPAD8 - Toggle Fog\n"
         << "NUMPAD+ - Super Sprint (hold)\n"
         << "CTRL - Fly (hold)\n"
         << "SHIFT - Sprint\n"

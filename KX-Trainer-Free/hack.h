@@ -56,6 +56,7 @@ private:
     // Hack functions
     void findProcess();
     void performBaseScan();
+    void scanForPatterns();
     void refreshAddresses();
     void readXYZ();
     void writeXYZ();

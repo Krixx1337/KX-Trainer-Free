@@ -115,7 +115,6 @@
     <ClInclude Include="hack_gui.h" />
     <ClInclude Include="http_client.h" />
     <ClInclude Include="hack.h" />
-    <ClInclude Include="hack_constants.h" />
     <ClInclude Include="kx_status.h" />
     <ClInclude Include="memhack.h" />
     <ClInclude Include="memoryutils.h" />

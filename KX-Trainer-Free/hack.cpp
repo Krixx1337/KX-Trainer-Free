@@ -2,11 +2,15 @@
 #include "processtools.h"
 #include "patternscan.h"
 #include "memoryutils.h"
-#include "hack_constants.h"
+#include "constants.h"
 #include <thread>
 #include <chrono>
 
-using namespace HackConstants;
+using namespace Constants::Process;
+using namespace Constants::Offsets;
+using namespace Constants::Scan;
+using namespace Constants::Patterns;
+using namespace Constants::Settings;
 
 Hack::Hack(std::function<void(const std::string&)> statusCallback)
     : m_statusCallback(std::move(statusCallback))

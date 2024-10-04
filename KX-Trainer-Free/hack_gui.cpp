@@ -1,10 +1,10 @@
 #include "hack_gui.h"
 #include "hack.h"
-#include "hack_constants.h"
+#include "constants.h"
 #include <iostream>
 #include <thread>
 
-using namespace HackConstants;
+using namespace Constants::Hotkeys;
 
 HackGUI::HackGUI(Hack& hack) : m_hack(hack)
 {

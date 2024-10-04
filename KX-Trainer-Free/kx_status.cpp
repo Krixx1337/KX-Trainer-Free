@@ -52,7 +52,7 @@ bool KXStatus::ReadStatusJson(std::string readBuffer)
 
     if (status.status == 1)
     {
-        if (status.version <= Constants::APP_VERSIONNR)
+        if (status.version <= Constants::APP_VERSION)
         {
             std::cout << "You are using latest " << Constants::APP_NAME << " version\n";
             if (!status.message.empty())

@@ -149,6 +149,7 @@ void HackGUI::displayInfo()
 
 void HackGUI::printWelcomeMessage()
 {
+    system("cls");
     std::cout << "[";
     setConsoleColor(BLUE);
     std::cout << "KX Trainer by Krixx";

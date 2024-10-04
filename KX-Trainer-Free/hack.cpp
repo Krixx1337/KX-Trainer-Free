@@ -5,11 +5,11 @@
 #include "hack_constants.h"
 #include <thread>
 #include <chrono>
-#include <iostream>
 
 using namespace HackConstants;
 
-Hack::Hack()
+Hack::Hack(std::function<void(const std::string&)> statusCallback)
+    : m_statusCallback(std::move(statusCallback))
 {
     initializeOffsets();
     findProcess();
@@ -40,19 +40,9 @@ void Hack::findProcess() {
     m_processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, m_processId);
 
     if (m_processHandle == nullptr) {
-        int exitTime = 5;
-        while (exitTime > 0 && m_processHandle == nullptr) {
-            std::cout << "Gw2-64.exe process not found!" << std::endl;
-            std::cout << "Exiting in " << exitTime << " seconds..." << std::endl;
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            exitTime--;
-            system("cls");
-            m_processId = GetProcID(GW2_PROCESS_NAME);
-            m_processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, m_processId);
-        }
-        if (exitTime == 0) {
-            exit(0);
-        }
+        reportStatus("Gw2-64.exe process not found! Exiting...");
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        exit(0);
     }
 }
 
@@ -68,22 +58,16 @@ void Hack::performBaseScan() {
         }
 
         if (m_baseAddress == 0) {
-            system("cls");
             scans++;
-            std::cout << "Gw2-64.exe process found!" << std::endl;
-            std::cout << "Scanning for Base Address... " << scans << std::endl;
+            reportStatus("Scanning for Base Address... " + std::to_string(scans));
         }
         else {
-            system("cls");
             ReadMemory(m_processHandle, m_baseAddress, baseValue);
-            std::cout << "Gw2-64.exe process found!" << std::endl;
-            std::cout << "Waiting for character selection..." << std::endl;
+            reportStatus("Waiting for character selection...");
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-
-    system("cls");
 }
 
 void Hack::scanForPatterns()
@@ -121,6 +105,12 @@ void Hack::writeXYZ(float xValue, float yValue, float zValue)
 
 uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
     return FindDMAAddy(m_processHandle, m_baseAddress, offsets);
+}
+
+void Hack::reportStatus(const std::string& message) {
+    if (m_statusCallback) {
+        m_statusCallback(message);
+    }
 }
 
 void Hack::toggleFog(bool enable) {

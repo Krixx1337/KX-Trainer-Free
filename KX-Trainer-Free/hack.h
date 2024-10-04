@@ -2,10 +2,12 @@
 
 #include <vector>
 #include <windows.h>
+#include <functional>
+#include <string>
 
 class Hack {
 public:
-    Hack();
+    Hack(std::function<void(const std::string&)> statusCallback);
     ~Hack();
 
     // Hack features
@@ -70,4 +72,7 @@ private:
     void readXYZ();
     void writeXYZ(float xValue, float yValue, float zValue);
     uintptr_t refreshAddr(const std::vector<unsigned int>& offsets);
+    void reportStatus(const std::string& message);
+
+    std::function<void(const std::string&)> m_statusCallback;
 };

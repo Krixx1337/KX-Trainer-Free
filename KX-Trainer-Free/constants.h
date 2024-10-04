@@ -52,7 +52,7 @@ namespace Constants {
         constexpr int KEY_FLY = 0xA2;  // Left Ctrl
     }
 
-    // Speeds and Settings
+    // Settings
     namespace Settings {
         constexpr float SPRINT_SPEED = 12.22f;
         constexpr float NORMAL_SPEED = 9.1875f;
@@ -61,15 +61,15 @@ namespace Constants {
         constexpr float FLY_NORMAL_SPEED = -40.625f;
         constexpr float WALLCLIMB_SPEED = 20.0f;
         constexpr float WALLCLIMB_NORMAL_SPEED = 2.1875f;
-        constexpr byte OBJECT_CLIPPING_ON = 0xDB;
-        constexpr byte OBJECT_CLIPPING_OFF = 0xD3;
+        constexpr byte OBJECT_CLIPPING_ON = 0xDB;  // Fisttp
+        constexpr byte OBJECT_CLIPPING_OFF = 0xD3; // Ror
         constexpr float INVISIBILITY_ON = 2.7f;
         constexpr float INVISIBILITY_OFF = 1.0f;
         constexpr float CLIPPING_ON = 99999.0f;
         constexpr float CLIPPING_OFF = 0.0f;
-        constexpr byte FULL_STRAFE_ON = 0x75;
-        constexpr byte FULL_STRAFE_OFF = 0x0F;
-        constexpr byte NO_FOG_ON = 0x54;
-        constexpr byte NO_FOG_OFF = 0x5C;
+        constexpr byte FULL_STRAFE_ON = 0x75;  // Jne
+        constexpr byte FULL_STRAFE_OFF = 0x0F;  // Movaps
+        constexpr byte NO_FOG_ON = 0x54;  // xmm2
+        constexpr byte NO_FOG_OFF = 0x5C;  // xmm3
     }
 }

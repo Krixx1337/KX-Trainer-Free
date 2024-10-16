@@ -61,8 +61,8 @@ namespace Constants {
         constexpr float FLY_NORMAL_SPEED = -40.625f;
         constexpr float WALLCLIMB_SPEED = 20.0f;
         constexpr float WALLCLIMB_NORMAL_SPEED = 2.1875f;
-        constexpr byte OBJECT_CLIPPING_ON = 0xDB;  // Fisttp
-        constexpr byte OBJECT_CLIPPING_OFF = 0xD3; // Ror
+        constexpr byte OBJECT_CLIPPING_ON = 0xDB;  // xmm3
+        constexpr byte OBJECT_CLIPPING_OFF = 0xD3; // xmm2
         constexpr float INVISIBILITY_ON = 2.7f;
         constexpr float INVISIBILITY_OFF = 1.0f;
         constexpr float CLIPPING_ON = 99999.0f;

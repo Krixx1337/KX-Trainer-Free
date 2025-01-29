@@ -138,14 +138,13 @@ void Hack::toggleFullStrafe(bool enable) {
 void Hack::handleSprint(bool enable) {
     if (enable) {
         ReadMemory(m_processHandle, m_speedAddr, m_speed);
-        if (m_speed < SPRINT_SPEED) {
+
+        if (m_speed >= NORMAL_SPEED && m_speed < SPRINT_SPEED) {
             m_speed = SPRINT_SPEED;
             WriteMemory(m_processHandle, m_speedAddr, m_speed);
         }
-        m_speedFreeze = 1;
     }
     else {
-        m_speedFreeze = 0;
         m_speed = NORMAL_SPEED;
         WriteMemory(m_processHandle, m_speedAddr, m_speed);
     }

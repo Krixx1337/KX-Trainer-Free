@@ -62,9 +62,10 @@ void HackGUI::checkFullStrafe() {
 void HackGUI::checkSprint() {
     if (GetAsyncKeyState(KEY_SPRINT) & 1) {
         m_sprintEnabled = !m_sprintEnabled;
-        m_hack.handleSprint(m_sprintEnabled);
         std::cout << "\nSprint: " << (m_sprintEnabled ? "Enabled" : "Disabled") << std::endl;
     }
+
+    m_hack.handleSprint(m_sprintEnabled);
 }
 
 void HackGUI::checkSuperSprint() {

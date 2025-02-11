@@ -36,3 +36,8 @@ KX Trainer Free is a C++ project designed to work on Windows using Visual Studio
 2. **Open the Project in Visual Studio**:
    - Launch Visual Studio.
    - Open the .sln file located in the cloned repository.
+
+## Contact
+
+For any questions or support, feel free to join our [Discord server](https://discord.gg/z92rnB4kHm).
+

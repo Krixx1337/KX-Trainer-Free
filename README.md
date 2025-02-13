@@ -2,6 +2,8 @@
 
 KX Trainer Free is a simple game trainer for Guild Wars 2 that we've decided to make open-source. The code is quite old, and we don't feel the need to keep it private anymore. It was originally started back in 2018 and has received some small updates over the years, but nothing too major.
 
+[➡️ Download the Latest Release](https://github.com/Krixx1337/KX-Trainer-Free/releases/latest)
+
 ![KX Trainer Free GUI](./images/kx_trainer_free_gui.png)
 
 ## Why Open-Source?

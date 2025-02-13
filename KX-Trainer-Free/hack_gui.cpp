@@ -73,12 +73,7 @@ void HackGUI::checkSuperSprint() {
     if (superSprintKeyPressed != m_superSprintEnabled) {
         m_superSprintEnabled = superSprintKeyPressed;
         m_hack.handleSuperSprint(m_superSprintEnabled);
-        if (m_superSprintEnabled) {
-            std::cout << "\nOn: Super Sprint" << std::endl;
-        }
-        else {
-            std::cout << "\nOff: Super Sprint" << std::endl;
-        }
+        std::cout << "\nSuper Sprint: " << (m_superSprintEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -122,12 +117,7 @@ void HackGUI::checkFly() {
     if (flyKeyPressed != m_flyEnabled) {
         m_flyEnabled = flyKeyPressed;
         m_hack.handleFly(m_flyEnabled);
-        if (m_flyEnabled) {
-            std::cout << "\nOn: Fly" << std::endl;
-        }
-        else {
-            std::cout << "\nOff: Fly" << std::endl;
-        }
+        std::cout << "\nFly: " << (m_flyEnabled ? "Enabled" : "Disabled") << std::endl;
     }
 }
 
@@ -145,25 +135,41 @@ void HackGUI::displayInfo()
         << "NUMPAD+ - Super Sprint (hold)\n"
         << "CTRL - Fly (hold)\n"
         << "SHIFT - Sprint\n"
-        << "[Logs]\n";
+        << "\n[Logs]\n";
 }
 
 void HackGUI::printWelcomeMessage()
 {
     system("cls");
-    std::cout << "[";
-    setConsoleColor(BLUE);
-    std::cout << "KX Trainer by Krixx";
-    setConsoleColor(DEFAULT);
-    std::cout << "]";
 
-    std::cout << "\nIf you like the trainer, consider upgrading to the paid version at ";
+    // Header
+    std::cout << "===================================\n";
     setConsoleColor(BLUE);
-    std::cout << "kxtools.xyz";
+    std::cout << "      KX Trainer by Krixx\n";
     setConsoleColor(DEFAULT);
-    std::cout << " for more features and support!" << std::endl;
+    std::cout << "===================================\n\n";
 
-    std::cout << "\nGw2-64.exe process found!\n" << std::endl;
+    // GitHub Repo
+    std::cout << "GitHub Repo: ";
+    setConsoleColor(BLUE);
+    std::cout << "https://github.com/Krixx1337/KX-Trainer-Free";
+    setConsoleColor(DEFAULT);
+    std::cout << "\n\n";
+
+    // Paid Version
+    std::cout << "If you like the trainer, consider upgrading to the paid version for more features and support!\n";
+    std::cout << "Visit: ";
+    setConsoleColor(BLUE);
+    std::cout << "https://kxtools.xyz";
+    setConsoleColor(DEFAULT);
+    std::cout << "\n\n";
+
+    // Status Section
+    std::cout << "[STATUS] ";
+    setConsoleColor(GREEN);
+    std::cout << "Gw2-64.exe process found!";
+    setConsoleColor(DEFAULT);
+    std::cout << "\n\n";
 }
 
 void HackGUI::setConsoleColor(int color)

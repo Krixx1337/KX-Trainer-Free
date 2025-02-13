@@ -57,12 +57,13 @@ private:
     // Hack variables
     float m_xValue, m_yValue, m_zValue;
     float m_xSave, m_ySave, m_zSave;
-    float m_speed, m_turboSpeed, m_turboCheck;
+    float m_speed, m_savedSpeed;
+    bool m_wasSuperSprinting;
+    bool m_wasSprinting;
     float m_invisibility, m_wallClimb, m_clipping, m_fly;
     byte m_objectClipping;
     byte m_fog;
     byte m_fullStrafe;
-    int m_speedFreeze;
 
     // Hack functions
     void initializeOffsets();

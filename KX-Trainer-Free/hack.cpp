@@ -143,27 +143,31 @@ void Hack::handleSprint(bool enable) {
             m_speed = SPRINT_SPEED;
             WriteMemory(m_processHandle, m_speedAddr, m_speed);
         }
+        m_wasSprinting = true;
     }
     else {
-        m_speed = NORMAL_SPEED;
-        WriteMemory(m_processHandle, m_speedAddr, m_speed);
+        if (m_wasSprinting) {
+            m_speed = NORMAL_SPEED;
+            WriteMemory(m_processHandle, m_speedAddr, m_speed);
+            m_wasSprinting = false;
+        }
     }
 }
 
 void Hack::handleSuperSprint(bool enable) {
     if (enable) {
-        if (!m_turboCheck) {
+        if (!m_wasSuperSprinting) {
             ReadMemory(m_processHandle, m_speedAddr, m_speed);
-            m_turboSpeed = m_speed;
+            m_savedSpeed = m_speed;
         }
         m_speed = SUPER_SPRINT_SPEED;
         WriteMemory(m_processHandle, m_speedAddr, m_speed);
-        m_turboCheck = true;
+        m_wasSuperSprinting = true;
     }
-    else if (m_turboCheck) {
-        m_speed = m_turboSpeed;
+    else if (m_wasSuperSprinting) {
+        m_speed = m_savedSpeed;
         WriteMemory(m_processHandle, m_speedAddr, m_speed);
-        m_turboCheck = false;
+        m_wasSuperSprinting = false;
     }
 }
 

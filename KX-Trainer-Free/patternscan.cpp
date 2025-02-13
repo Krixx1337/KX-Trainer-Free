@@ -32,14 +32,12 @@ void* PatternScanEx(HANDLE hProcess, uintptr_t begin, uintptr_t end, char* patte
 
 	while (currentChunk < end)
 	{
-		// It somehow doesn't work with 4096 size
-		char buffer[4097];
+		char buffer[4096];
 
-		// I had to comment it cuz it only works with 4096 size
-		//DWORD oldprotect;
-		//VirtualProtectEx(hProcess, (void*)currentChunk, sizeof(buffer), PAGE_EXECUTE_READWRITE, &oldprotect);
+		DWORD oldprotect;
+		VirtualProtectEx(hProcess, (void*)currentChunk, sizeof(buffer), PAGE_EXECUTE_READWRITE, &oldprotect);
 		ReadProcessMemory(hProcess, (void*)currentChunk, &buffer, sizeof(buffer), &bytesRead);
-		//VirtualProtectEx(hProcess, (void*)currentChunk, sizeof(buffer), oldprotect, &oldprotect);
+		VirtualProtectEx(hProcess, (void*)currentChunk, sizeof(buffer), oldprotect, &oldprotect);
 
 		if (bytesRead == 0)
 		{

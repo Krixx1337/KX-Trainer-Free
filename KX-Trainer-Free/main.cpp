@@ -50,6 +50,7 @@ std::unique_ptr<Hack> InitializeHackInBackground() {
         return std::make_unique<Hack>(guiStatusCallback);
     }
     catch (...) {
+        // Let the exception propagate
         throw;
     }
 }
@@ -122,6 +123,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     int windowX = (screenWidth - windowWidth) / 2;
     int windowY = (screenHeight - windowHeight) / 2;
 
+    // Create initially visible for the status window
     HWND hwnd = ::CreateWindowEx(0, wc.lpszClassName, _T("KX Trainer - Loading"), WS_POPUP | WS_VISIBLE,
         windowX, windowY, windowWidth, windowHeight,
         NULL, NULL, wc.hInstance, NULL);
@@ -157,6 +159,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     bool initializationSuccess = false;
     std::string initializationErrorMsg = "";
     std::unique_ptr<HackGUI> gui = nullptr;
+    bool gui_first_frame_rendered = false; // Flag to track first GUI render
 
     // Main loop
     bool done = false;
@@ -181,6 +184,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                         if (!g_hack) throw std::runtime_error("Initialization returned null.");
                         initializationSuccess = true;
                         guiStatusCallback("INFO: Hack initialization successful.");
+                        // Hide the original host window AFTER initialization succeeds
                         ::ShowWindow(hwnd, SW_HIDE);
                         SetWindowText(hwnd, _T("KX Trainer (Hidden Host)"));
                     }
@@ -188,41 +192,68 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                         initializationSuccess = false; initializationErrorMsg = e.what();
                         guiStatusCallback("ERROR: Hack init failed: " + initializationErrorMsg);
                         SetWindowText(hwnd, _T("KX Trainer - Error"));
+                        // Keep the error window visible, don't hide hwnd
+                        ::ShowWindow(hwnd, SW_SHOW); // Ensure it's visible if error occurs
+                        ::SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE); // Try to bring error window up
                     }
                     catch (...) {
                         initializationSuccess = false; initializationErrorMsg = "Unknown initialization error.";
                         guiStatusCallback("ERROR: Hack init failed (unknown).");
                         SetWindowText(hwnd, _T("KX Trainer - Error"));
+                        // Keep the error window visible, don't hide hwnd
+                        ::ShowWindow(hwnd, SW_SHOW); // Ensure it's visible if error occurs
+                        ::SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE); // Try to bring error window up
                     }
-                    isLoading = false;
+                    isLoading = false; // Stop rendering the status window (unless error occurred)
                 }
             }
         }
         else if (initializationSuccess) {
+            // Initialize and render the main GUI
             if (!gui) gui = std::make_unique<HackGUI>(*g_hack);
 
-            if (gui && gui->renderUI()) {
+            if (gui && gui->renderUI()) { // renderUI() returns true if user requested exit
                 done = true;
             }
         }
         else {
+            // Render the error state (using the same status window function)
             RenderStatusWindow(done, initializationErrorMsg);
         }
 
+        // Render ImGui frame
         ImGui::Render();
 
-        const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+        // Clear and render main window (even if hidden, needed for viewports)
+        const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f }; // Clear color doesn't matter much if hidden
         if (g_mainRenderTargetView) {
             g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
             g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color);
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         }
 
+        // Handle ImGui viewports (creates/updates native windows for ImGui windows)
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
 
+        // --- Focus Fix ---
+        // After the first frame where the successful GUI is rendered and platform windows updated,
+        // attempt to bring the application to the foreground.
+        if (initializationSuccess && gui && !gui_first_frame_rendered) {
+            // This targets the main (hidden) window, but Windows should bring the
+            // foreground window of this application thread to the front.
+            // Since the ImGui viewport window is likely the only visible top-level window
+            // for this app at this point, it should be the one brought forward.
+            BringWindowToTop(hwnd);
+            SetForegroundWindow(hwnd);
+            gui_first_frame_rendered = true; // Only do this once
+        }
+        // --- End Focus Fix ---
+
+
+        // Present the swap chain
         if (g_pSwapChain) {
             g_pSwapChain->Present(1, 0); // Present with VSync
         }
@@ -244,6 +275,7 @@ bool CreateDeviceD3D(HWND hWnd) {
     ZeroMemory(&sd, sizeof(sd));
     sd.BufferCount = 2;
     RECT rc; ::GetClientRect(hWnd, &rc);
+    // Ensure width/height are at least 1, avoids issues with initially hidden/small windows
     sd.BufferDesc.Width = (rc.right > 0) ? rc.right : 1;
     sd.BufferDesc.Height = (rc.bottom > 0) ? rc.bottom : 1;
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -252,19 +284,20 @@ bool CreateDeviceD3D(HWND hWnd) {
     sd.OutputWindow = hWnd;
     sd.SampleDesc.Count = 1; sd.SampleDesc.Quality = 0;
     sd.Windowed = TRUE;
-    sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    sd.Flags = 0;
+    sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // Recommended for performance
+    sd.Flags = 0; // No DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
 
     UINT createDeviceFlags = 0;
 #ifdef _DEBUG
-    // createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+    // createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG; // Enable if D3D debug layer is installed
 #endif
     D3D_FEATURE_LEVEL featureLevel;
     const D3D_FEATURE_LEVEL featureLevelArray[] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1 };
     HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, ARRAYSIZE(featureLevelArray), D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
     if (FAILED(res)) {
+        // Fallback to WARP device
         res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, ARRAYSIZE(featureLevelArray), D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
-        if (FAILED(res)) return false;
+        if (FAILED(res)) return false; // Failed both hardware and WARP
     }
     CreateRenderTarget();
     return true;
@@ -273,18 +306,23 @@ bool CreateDeviceD3D(HWND hWnd) {
 void CreateRenderTarget() {
     ID3D11Texture2D* pBackBuffer = nullptr;
     if (!g_pSwapChain) return;
+
+    // Get buffer description to ensure valid size before getting buffer
     DXGI_SWAP_CHAIN_DESC desc;
     if (SUCCEEDED(g_pSwapChain->GetDesc(&desc)) && desc.BufferDesc.Width > 0 && desc.BufferDesc.Height > 0) {
-        g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+        if (SUCCEEDED(g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer)))) {
+            if (g_pd3dDevice) {
+                g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
+            }
+            pBackBuffer->Release();
+        }
     }
-    if (pBackBuffer && g_pd3dDevice) {
-        g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
+    // Ensure RTV is null if creation failed
+    if (!g_mainRenderTargetView) {
+        // Handle or log error if needed, for now just ensures consistency
     }
-    else {
-        g_mainRenderTargetView = nullptr;
-    }
-    if (pBackBuffer) pBackBuffer->Release();
 }
+
 
 void CleanupRenderTarget() {
     if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
@@ -292,8 +330,13 @@ void CleanupRenderTarget() {
 
 void CleanupDeviceD3D() {
     CleanupRenderTarget();
-    if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = nullptr; }
-    if (g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = nullptr; }
+    if (g_pSwapChain) {
+        // Set fullscreen state to false before releasing swap chain
+        g_pSwapChain->SetFullscreenState(FALSE, NULL);
+        g_pSwapChain->Release();
+        g_pSwapChain = nullptr;
+    }
+    if (g_pd3dDeviceContext) { g_pd3dDeviceContext->ClearState(); g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = nullptr; } // Clear state before releasing context
     if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
 }
 
@@ -304,14 +347,22 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
     switch (msg) {
     case WM_SIZE:
-        if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED) {
-            CleanupRenderTarget();
-            if (g_pSwapChain) g_pSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-            CreateRenderTarget();
+        // Check if swap chain exists and size is non-zero
+        if (g_pSwapChain != nullptr && wParam != SIZE_MINIMIZED) {
+            UINT width = (UINT)LOWORD(lParam);
+            UINT height = (UINT)HIWORD(lParam);
+            // Only resize if dimensions are valid
+            if (width > 0 && height > 0) {
+                CleanupRenderTarget();
+                g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+                CreateRenderTarget();
+            }
         }
         return 0;
     case WM_SYSCOMMAND:
-        if ((wParam & 0xfff0) == SC_KEYMENU) return 0;
+        // Prevent closing via Alt+F4 on the (potentially hidden) host window
+        if ((wParam & 0xfff0) == SC_KEYMENU) return 0; // Disable ALT menu
+        // Could also consider blocking SC_CLOSE here if needed, but PostQuitMessage is primary exit path
         break;
     case WM_DESTROY:
         ::PostQuitMessage(0);

@@ -7,8 +7,6 @@
 #include <windows.h>
 #include <tchar.h>
 #include <string>
-#include <vector>
-#include <mutex>
 #include <memory>
 #include <future>
 #include <chrono>
@@ -26,7 +24,6 @@ std::unique_ptr<Hack> g_hack;
 std::unique_ptr<Hack> InitializeHackInBackground() {
     try {
         // Pass the thread-safe status message callback to the Hack constructor.
-        // Assumes Hack constructor accepts std::function<void(const std::string&)>.
         return std::make_unique<Hack>(StatusUI::AddMessage);
     }
     catch (const std::exception& e) {
@@ -95,7 +92,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ::SetForegroundWindow(hwnd); // Attempt to bring loading window to front
     ::BringWindowToTop(hwnd);
 
-
     // Initialize Graphics & ImGui (Needed to display StatusUI)
     if (!D3DManager::Initialize(hwnd)) {
         // Critical failure, MessageBox appropriate
@@ -123,7 +119,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(D3DManager::GetDevice(), D3DManager::GetDeviceContext());
-
 
     // Initialize Application State
     bool isLoading = false; // Will be true only if status check passed AND we start background init

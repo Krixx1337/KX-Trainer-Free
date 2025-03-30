@@ -1,35 +1,31 @@
 #pragma once
 
-#include "hack.h"
-#include <vector> // For status messages
-#include <string> // For status messages
+#include <string> // Required by vector below, good practice
+#include <vector> // For potential use with status messages later if needed
+
+// Forward declare Hack class
+class Hack;
 
 class HackGUI {
 public:
     HackGUI(Hack& hack);
 
-    // New method to render the ImGui UI
-    void renderUI();
+    // Renders the ImGui UI. Returns true if exit is requested.
+    bool renderUI();
 
-    // Keep state variables public temporarily for easier access from main loop if needed,
-    // or make helper functions/keep logic inside renderUI
-    // public: // Or private:
-    Hack& m_hack;
+private:
+    Hack& m_hack; // Reference to the core application logic
 
-    // Feature states
+    // Feature states managed by the GUI
     bool m_fogEnabled = false;
     bool m_objectClippingEnabled = false;
     bool m_fullStrafeEnabled = false;
-    bool m_sprintEnabled = false;
-    bool m_superSprintEnabled = false;
+    bool m_sprintEnabled = true; // Default sprint key check ON
     bool m_invisibilityEnabled = false;
     bool m_wallClimbEnabled = false;
     bool m_clippingEnabled = false;
+
+    // Hold-key states (updated each frame)
+    bool m_superSprintEnabled = false;
     bool m_flyEnabled = false;
-
-private:
-    // Removed console-specific methods and members
-    // Removed check* methods, logic will move to renderUI or main loop
-
-    // Maybe add helpers here later if needed
 };

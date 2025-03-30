@@ -102,6 +102,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d_manager.cpp" />
+    <ClCompile Include="process_memory_manager.cpp" />
     <ClCompile Include="hack_gui.cpp" />
     <ClCompile Include="http_client.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
@@ -113,9 +114,6 @@
     <ClCompile Include="kx_status.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="hack.cpp" />
-    <ClCompile Include="memhack.cpp" />
-    <ClCompile Include="patternscan.cpp" />
-    <ClCompile Include="processtools.cpp" />
     <ClCompile Include="status_ui.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -133,10 +131,7 @@
     <ClInclude Include="imgui\imstb_textedit.h" />
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="kx_status.h" />
-    <ClInclude Include="memhack.h" />
-    <ClInclude Include="memoryutils.h" />
-    <ClInclude Include="patternscan.h" />
-    <ClInclude Include="processtools.h" />
+    <ClInclude Include="process_memory_manager.h" />
     <ClInclude Include="status_ui.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

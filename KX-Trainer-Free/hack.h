@@ -1,10 +1,12 @@
 #pragma once
 
-#include <vector>
-#include <windows.h>
+#include "process_memory_manager.h"
+#include <Windows.h>
+#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 class HackInitializationError : public std::runtime_error {
 public:
@@ -17,32 +19,33 @@ public:
     Hack(std::function<void(const std::string&)> statusCallback);
     ~Hack();
 
-    // Hack features
-    void refreshAddresses();
+    void refreshAddresses(); // Refreshes dynamic memory pointers
+
+    // Feature toggles/handlers
     void toggleFog(bool enable);
     void toggleObjectClipping(bool enable);
     void toggleFullStrafe(bool enable);
     void handleSprint(bool enable);
     void handleSuperSprint(bool enable);
-    void savePosition();
-    void loadPosition();
     void toggleInvisibility(bool enable);
     void toggleWallClimb(bool enable);
     void toggleClipping(bool enable);
     void handleFly(bool enable);
 
+    // Position saving/loading
+    void savePosition();
+    void loadPosition();
+
 private:
-    // Process-related members
-    DWORD m_processId;
-    HANDLE m_processHandle;
+    ProcessMemoryManager m_memoryManager;
+    std::function<void(const std::string&)> m_statusCallback;
 
-    // Pattern scans
-    uintptr_t m_baseAddress;
-    uintptr_t m_fogAddress;
-    uintptr_t m_objectClippingAddress;
-    uintptr_t m_fullStrafeAddress;
+    uintptr_t m_baseAddress = 0; // Found via pattern scan during init
+    uintptr_t m_fogAddress = 0;
+    uintptr_t m_objectClippingAddress = 0;
+    uintptr_t m_fullStrafeAddress = 0;
 
-    // Pointers and Addresses
+    // Pointer chain offsets relative to base address
     std::vector<unsigned int> m_xOffsets;
     std::vector<unsigned int> m_yOffsets;
     std::vector<unsigned int> m_zOffsets;
@@ -52,27 +55,28 @@ private:
     std::vector<unsigned int> m_speedOffsets;
     std::vector<unsigned int> m_wallClimbOffsets;
 
-    uintptr_t m_xAddr;
-    uintptr_t m_yAddr;
-    uintptr_t m_zAddr;
-    uintptr_t m_zHeight1Addr;
-    uintptr_t m_zHeight2Addr;
-    uintptr_t m_gravityAddr;
-    uintptr_t m_speedAddr;
-    uintptr_t m_wallClimbAddr;
+    // Resolved dynamic addresses
+    uintptr_t m_xAddr = 0;
+    uintptr_t m_yAddr = 0;
+    uintptr_t m_zAddr = 0;
+    uintptr_t m_zHeight1Addr = 0;
+    uintptr_t m_zHeight2Addr = 0;
+    uintptr_t m_gravityAddr = 0;
+    uintptr_t m_speedAddr = 0;
+    uintptr_t m_wallClimbAddr = 0;
 
-    // Hack variables
-    float m_xValue, m_yValue, m_zValue;
-    float m_xSave, m_ySave, m_zSave;
-    float m_speed, m_savedSpeed;
-    bool m_wasSuperSprinting;
-    bool m_wasSprinting;
-    float m_invisibility, m_wallClimb, m_clipping, m_fly;
-    byte m_objectClipping;
-    byte m_fog;
-    byte m_fullStrafe;
+    // State variables
+    float m_xValue = 0.0f, m_yValue = 0.0f, m_zValue = 0.0f;
+    float m_xSave = 0.0f, m_ySave = 0.0f, m_zSave = 0.0f;
+    float m_speed = 0.0f, m_savedSpeed = 0.0f;
+    bool m_wasSuperSprinting = false;
+    bool m_wasSprinting = false;
+    float m_invisibility = 0.0f, m_wallClimb = 0.0f, m_clipping = 0.0f, m_fly = 0.0f;
+    byte m_objectClipping = 0;
+    byte m_fog = 0;
+    byte m_fullStrafe = 0;
 
-    // Hack functions
+    // Private helper functions
     void initializeOffsets();
     void findProcess();
     void performBaseScan();
@@ -81,6 +85,4 @@ private:
     void writeXYZ(float xValue, float yValue, float zValue);
     uintptr_t refreshAddr(const std::vector<unsigned int>& offsets);
     void reportStatus(const std::string& message);
-
-    std::function<void(const std::string&)> m_statusCallback;
 };

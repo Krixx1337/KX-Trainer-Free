@@ -30,6 +30,8 @@ bool HackGUI::renderUI()
         exit_requested = true;
     }
 
+    m_hack.refreshAddresses();
+
     // -- Toggles Section --
     if (ImGui::CollapsingHeader("Toggles", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::Checkbox("No Fog", &m_fogEnabled)) { m_hack.toggleFog(m_fogEnabled); }

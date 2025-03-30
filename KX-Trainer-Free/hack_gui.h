@@ -1,48 +1,61 @@
 #pragma once
 
-#include "hack.h"
+#include <string>
+#include <vector>
+
+class Hack; // Forward declaration
 
 class HackGUI {
 public:
     HackGUI(Hack& hack);
-
-    void start();
-    void run();
+    bool renderUI();
 
 private:
     Hack& m_hack;
 
+    // Feature states
     bool m_fogEnabled = false;
     bool m_objectClippingEnabled = false;
     bool m_fullStrafeEnabled = false;
     bool m_sprintEnabled = false;
-    bool m_superSprintEnabled = false;
     bool m_invisibilityEnabled = false;
     bool m_wallClimbEnabled = false;
     bool m_clippingEnabled = false;
-    bool m_flyEnabled = false;
 
-    void checkFog();
-    void checkObjectClipping();
-    void checkFullStrafe();
-    void checkSprint();
-    void checkSuperSprint();
-    void checkPositionKeys();
-    void checkInvisibility();
-    void checkWallClimb();
-    void checkClipping();
-    void checkFly();
+    // Hold key active states
+    bool m_superSprintActive = false;
+    bool m_flyActive = false;
 
-    void displayInfo();
-    void printWelcomeMessage();
-    void setConsoleColor(int color);
+    // Hotkeys
+    int m_key_savepos;
+    int m_key_loadpos;
+    int m_key_invisibility;
+    int m_key_wallclimb;
+    int m_key_clipping;
+    int m_key_object_clipping;
+    int m_key_full_strafe;
+    int m_key_no_fog;
+    int m_key_super_sprint;
+    int m_key_sprint;
+    int m_key_fly;
 
-    // Console color management
-    HANDLE m_consoleHandle;
-    enum ConsoleColor {
-        BLUE = 3,
-        DEFAULT = 7,
-        GREEN = 10,
-        RED = 12
-    };
+    // Hotkey Rebinding State
+    int m_rebinding_hotkey_index = -1;
+    const char* m_rebinding_hotkey_name = nullptr;
+
+    // UI Rendering Methods
+    void RenderAlwaysOnTop();
+    void RenderTogglesSection();
+    void RenderActionsSection();
+    void RenderHotkeysSection();
+    void RenderLogSection();
+    void RenderInfoSection();
+
+    // Logic Handling Methods
+    void HandleHotkeys();
+    void HandleHotkeyRebinding();
+
+    // Helpers
+    const char* GetKeyName(int vk_code);
+    void CheckAndSetHotkey(int hotkey_index, const char* name, int& key_variable);
 };

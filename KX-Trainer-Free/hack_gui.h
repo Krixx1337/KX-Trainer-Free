@@ -1,17 +1,22 @@
 #pragma once
 
 #include "hack.h"
+#include <vector> // For status messages
+#include <string> // For status messages
 
 class HackGUI {
 public:
     HackGUI(Hack& hack);
 
-    void start();
-    void run();
+    // New method to render the ImGui UI
+    void renderUI();
 
-private:
+    // Keep state variables public temporarily for easier access from main loop if needed,
+    // or make helper functions/keep logic inside renderUI
+    // public: // Or private:
     Hack& m_hack;
 
+    // Feature states
     bool m_fogEnabled = false;
     bool m_objectClippingEnabled = false;
     bool m_fullStrafeEnabled = false;
@@ -22,27 +27,9 @@ private:
     bool m_clippingEnabled = false;
     bool m_flyEnabled = false;
 
-    void checkFog();
-    void checkObjectClipping();
-    void checkFullStrafe();
-    void checkSprint();
-    void checkSuperSprint();
-    void checkPositionKeys();
-    void checkInvisibility();
-    void checkWallClimb();
-    void checkClipping();
-    void checkFly();
+private:
+    // Removed console-specific methods and members
+    // Removed check* methods, logic will move to renderUI or main loop
 
-    void displayInfo();
-    void printWelcomeMessage();
-    void setConsoleColor(int color);
-
-    // Console color management
-    HANDLE m_consoleHandle;
-    enum ConsoleColor {
-        BLUE = 3,
-        DEFAULT = 7,
-        GREEN = 10,
-        RED = 12
-    };
+    // Maybe add helpers here later if needed
 };

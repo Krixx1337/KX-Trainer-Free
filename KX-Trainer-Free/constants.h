@@ -4,7 +4,7 @@
 
 namespace Constants {
     // Application Info
-    constexpr int APP_VERSION = 1012;
+    constexpr int APP_VERSION = 20000;
     constexpr char APP_NAME[] = "KX Trainer";
     constexpr char API_URL[] = "https://kxtools.xyz/api/v1/version/kx-trainer-free";
 

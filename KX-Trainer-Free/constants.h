@@ -1,5 +1,7 @@
 #pragma once
 
+#include <windows.h>
+
 namespace Constants {
     // Application Info
     constexpr int APP_VERSION = 1012;

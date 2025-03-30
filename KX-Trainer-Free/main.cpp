@@ -18,14 +18,11 @@
 #include "imgui/imgui_impl_win32.h"
 #include "imgui/imgui_impl_dx11.h"
 
-// Forward declarations
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-// Global instance of the core hack logic
 std::unique_ptr<Hack> g_hack;
 
-// Wrapper for background initialization of the Hack object
 std::unique_ptr<Hack> InitializeHackInBackground() {
     try {
         // Pass the thread-safe status message callback to the Hack constructor.
@@ -33,6 +30,7 @@ std::unique_ptr<Hack> InitializeHackInBackground() {
         return std::make_unique<Hack>(StatusUI::AddMessage);
     }
     catch (const std::exception& e) {
+        // KXStatus might have logged API/version errors, this catches errors *within* Hack's constructor
         StatusUI::AddMessage("ERROR: Exception during Hack initialization: " + std::string(e.what()));
         throw; // Re-throw for future::get()
     }
@@ -42,18 +40,28 @@ std::unique_ptr<Hack> InitializeHackInBackground() {
     }
 }
 
-// --- Application Entry Point ---
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    // --- Preliminary Checks ---
-    KXStatus statusCheck;
-    if (!statusCheck.CheckStatus()) {
-        MessageBox(NULL, _T("Status check failed! See logs or contact support. Exiting."), _T("Error"), MB_OK | MB_ICONERROR);
-        return 1;
-    }
-    StatusUI::AddMessage("INFO: Status checks passed.");
+    bool statusCheckOk = false;
+    std::string statusCheckErrorMsg = "";
 
-    // --- Window Setup ---
+    // Preliminary Checks
+    {
+        KXStatus statusCheck;
+        if (!statusCheck.CheckStatus()) {
+            // Status check failed. KXStatus already logged the details via StatusUI.
+            statusCheckOk = false;
+            statusCheckErrorMsg = "Application status check failed. See log above for details.";
+            // Specific error (outdated, disabled, API fail) is logged by KXStatus
+        }
+        else {
+            // Status check succeeded.
+            statusCheckOk = true;
+            // Success is implicit if no error was logged by KXStatus
+        }
+    }
+
+    // Window Setup
     const TCHAR* CLASS_NAME = _T("KXTrainerHostWindowClass");
     const TCHAR* WINDOW_TITLE_LOADING = _T("KX Trainer - Loading...");
     const TCHAR* WINDOW_TITLE_ERROR = _T("KX Trainer - Error");
@@ -61,10 +69,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, CLASS_NAME, NULL };
     if (!::RegisterClassEx(&wc)) {
+        // Critical failure, MessageBox is appropriate here as StatusUI isn't ready
         MessageBox(NULL, _T("Failed to register window class."), _T("Error"), MB_OK | MB_ICONERROR);
         return 1;
     }
-    StatusUI::AddMessage("INFO: Window class registered.");
 
     int initialWindowWidth = 450;
     int initialWindowHeight = 250;
@@ -73,7 +81,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     int windowX = (screenWidth - initialWindowWidth) / 2;
     int windowY = (screenHeight - initialWindowHeight) / 2;
 
-    HWND hwnd = ::CreateWindowEx(0, CLASS_NAME, WINDOW_TITLE_LOADING, WS_POPUP | WS_VISIBLE,
+    // Set initial title based on status check result
+    const TCHAR* initialTitle = statusCheckOk ? WINDOW_TITLE_LOADING : WINDOW_TITLE_ERROR;
+    HWND hwnd = ::CreateWindowEx(0, CLASS_NAME, initialTitle, WS_POPUP | WS_VISIBLE,
         windowX, windowY, initialWindowWidth, initialWindowHeight,
         NULL, NULL, hInstance, NULL);
 
@@ -84,17 +94,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
     ::SetForegroundWindow(hwnd); // Attempt to bring loading window to front
     ::BringWindowToTop(hwnd);
-    StatusUI::AddMessage("INFO: Host window created.");
 
-    // --- Initialize Graphics & ImGui ---
+
+    // Initialize Graphics & ImGui (Needed to display StatusUI)
     if (!D3DManager::Initialize(hwnd)) {
+        // Critical failure, MessageBox appropriate
         MessageBox(NULL, _T("Direct3D Initialization Failed. Check drivers and DirectX installation."), _T("Error"), MB_OK | MB_ICONERROR);
         D3DManager::Shutdown();
         ::DestroyWindow(hwnd);
         ::UnregisterClass(wc.lpszClassName, wc.hInstance);
         return 1;
     }
-    StatusUI::AddMessage("INFO: DirectX 11 initialized.");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -113,21 +123,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(D3DManager::GetDevice(), D3DManager::GetDeviceContext());
-    StatusUI::AddMessage("INFO: ImGui initialized.");
 
-    // --- Start Background Initialization ---
-    StatusUI::AddMessage("INFO: Starting background initialization...");
-    auto future_hack = std::async(std::launch::async, InitializeHackInBackground);
-    bool isLoading = true;
-    bool initializationSuccess = false;
-    std::string initializationErrorMsg = "";
+
+    // Initialize Application State
+    bool isLoading = false; // Will be true only if status check passed AND we start background init
+    bool initializationSuccess = statusCheckOk; // Start with the status check result
+    std::string initializationErrorMsg = statusCheckErrorMsg; // Use the message from status check if it failed
     std::unique_ptr<HackGUI> gui = nullptr;
+    std::future<std::unique_ptr<Hack>> future_hack;
+
+    // Start Background Initialization ONLY IF status check passed
+    if (initializationSuccess) {
+        future_hack = std::async(std::launch::async, InitializeHackInBackground);
+        isLoading = true; // Now we are actually loading the Hack object
+    }
+    else {
+        // If status check failed, ensure the error window title is set (already done by CreateWindowEx)
+        if (!::IsWindowVisible(hwnd)) ::ShowWindow(hwnd, SW_SHOW); // Make sure window is visible
+    }
+
     bool gui_first_frame_rendered = false;
 
-    // --- Main Loop ---
+    // Main Loop
     bool done = false;
     while (!done) {
-        // --- Process Window Messages ---
+        // Process Window Messages
         MSG msg;
         while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE)) {
             ::TranslateMessage(&msg);
@@ -135,82 +155,82 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             if (msg.message == WM_QUIT)
                 done = true;
         }
-        if (done) break;
+        if (done) break; // Exit loop immediately if WM_QUIT received
 
-        // --- Start ImGui Frame ---
+        // Start ImGui Frame
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        // --- Handle Application State ---
-        if (isLoading) {
+        // Handle Application State
+        if (isLoading) { // Only true if status check passed and background task is running
             if (future_hack.valid()) {
                 auto status = future_hack.wait_for(std::chrono::milliseconds(0)); // Non-blocking check
                 if (status == std::future_status::ready) {
                     try {
-                        g_hack = future_hack.get(); // Will re-throw if exception occurred
+                        g_hack = future_hack.get(); // Get result or re-throw exception
                         initializationSuccess = (g_hack != nullptr);
                         if (initializationSuccess) {
-                            StatusUI::AddMessage("INFO: Background initialization successful.");
+                            // Background task succeeded
+                            gui = std::make_unique<HackGUI>(*g_hack); // Create GUI now
                             ::ShowWindow(hwnd, SW_HIDE);
                             ::SetWindowText(hwnd, WINDOW_TITLE_HIDDEN);
-                            gui = std::make_unique<HackGUI>(*g_hack); // Create GUI now
-                            StatusUI::AddMessage("INFO: Main GUI created.");
                         }
                         else {
+                            // Should have been caught by exception? Defensive check.
                             initializationErrorMsg = "Hack initialization returned null pointer.";
-                            StatusUI::AddMessage("ERROR: " + initializationErrorMsg);
+                            StatusUI::AddMessage("ERROR: " + initializationErrorMsg); // Log this specific error
                             ::SetWindowText(hwnd, WINDOW_TITLE_ERROR);
                             if (!::IsWindowVisible(hwnd)) ::ShowWindow(hwnd, SW_SHOW);
                         }
                     }
                     catch (const std::exception& e) {
                         initializationSuccess = false;
-                        initializationErrorMsg = e.what();
-                        StatusUI::AddMessage("ERROR: Caught exception: " + initializationErrorMsg);
+                        initializationErrorMsg = e.what(); // Get error message from exception
+                        // Hack constructor should have logged the specific error via callback
                         ::SetWindowText(hwnd, WINDOW_TITLE_ERROR);
                         if (!::IsWindowVisible(hwnd)) ::ShowWindow(hwnd, SW_SHOW);
                     }
                     catch (...) {
                         initializationSuccess = false;
                         initializationErrorMsg = "An unknown error occurred during initialization.";
-                        StatusUI::AddMessage("ERROR: " + initializationErrorMsg);
+                        StatusUI::AddMessage("ERROR: " + initializationErrorMsg); // Log this specific error
                         ::SetWindowText(hwnd, WINDOW_TITLE_ERROR);
                         if (!::IsWindowVisible(hwnd)) ::ShowWindow(hwnd, SW_SHOW);
                     }
-                    isLoading = false;
+                    isLoading = false; // Background task attempt finished
                 }
             }
-            // Render status/loading/error window
-            if (StatusUI::Render(initializationErrorMsg)) {
-                done = true; // User requested exit from error screen
-            }
-        }
-        else if (initializationSuccess && gui) {
-            // Render main application GUI
-            if (gui->renderUI()) { // renderUI returns true on exit request
+            // Render status/loading window (shows "Initializing..." title if loading, empty if waiting)
+            if (StatusUI::Render(isLoading ? "" : "Waiting for initialization task...")) { // Pass empty error message while loading Hack
                 done = true;
             }
-            // Bring the main GUI window to front once (mainly for viewports)
+        }
+        else if (initializationSuccess && gui) { // Status check OK, Hack init OK, GUI exists
+            // Render main application GUI
+            if (gui->renderUI()) { // Assuming renderUI returns true on exit request
+                done = true;
+            }
+            // Bring the main GUI window to front once (if using viewports mainly)
             if (!gui_first_frame_rendered && (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)) {
                 ImGuiViewport* main_viewport = ImGui::GetMainViewport();
                 HWND hwnd_to_focus = main_viewport ? (HWND)main_viewport->PlatformHandleRaw : hwnd;
-                if (hwnd_to_focus && ::IsWindow(hwnd_to_focus)) {
+                if (hwnd_to_focus && ::IsWindow(hwnd_to_focus)) { // Check if handle is valid
                     ::BringWindowToTop(hwnd_to_focus);
                     ::SetForegroundWindow(hwnd_to_focus);
                 }
                 gui_first_frame_rendered = true;
             }
         }
-        else {
-            // Initialization failed, keep rendering the error window
-            if (StatusUI::Render(initializationErrorMsg)) {
+        else { // Either status check failed OR Hack init failed
+            // Render the error window using the message set earlier
+            if (StatusUI::Render(initializationErrorMsg)) { // Pass the specific error message
                 done = true;
             }
         }
 
-        // --- Rendering ---
-        ImGui::Render();
+        // Rendering
+        ImGui::Render(); // End frame and prepare draw data
 
         ID3D11RenderTargetView* rtv = D3DManager::GetMainRenderTargetView();
         ID3D11DeviceContext* ctx = D3DManager::GetDeviceContext();
@@ -218,18 +238,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         if (rtv && ctx && swapChain) {
             const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
-            ctx->OMSetRenderTargets(1, &rtv, NULL);
-            ctx->ClearRenderTargetView(rtv, clear_color);
-            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+            ctx->OMSetRenderTargets(1, &rtv, NULL); // Bind the render target
+            ctx->ClearRenderTargetView(rtv, clear_color); // Clear it
+            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // Render ImGui data
 
+            // Update and Render additional Platform Windows (for viewports)
             if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
                 ImGui::UpdatePlatformWindows();
                 ImGui::RenderPlatformWindowsDefault();
             }
 
-            HRESULT hr = swapChain->Present(1, 0); // Present with vsync
+            // Present the frame
+            HRESULT hr = swapChain->Present(1, 0); // Present with vsync (1)
 
-            // Handle device lost/reset
+            // Handle device lost/reset - Keep this essential error log
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
                 StatusUI::AddMessage("ERROR: Graphics device lost or reset. Exiting.");
                 MessageBox(hwnd, _T("Graphics device lost. Application needs to close."), _T("Error"), MB_OK | MB_ICONERROR);
@@ -237,15 +259,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             }
         }
         else if (!done) {
+            // Keep this warning as it indicates a rendering problem
             StatusUI::AddMessage("WARN: Render target or device context not available. Skipping frame render.");
-            Sleep(100); // Avoid spinning CPU
+            Sleep(100); // Avoid spinning CPU if stuck in this state
         }
-    } // End main loop
+    }
 
-    // --- Cleanup ---
-    StatusUI::AddMessage("INFO: Shutting down...");
-    g_hack.reset(); // Destroy Hack logic first
-    gui.reset();    // Destroy GUI
+    // Cleanup
+    g_hack.reset(); // Ensure Hack object is destroyed before subsystems
+    gui.reset();    // Destroy GUI object
 
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
@@ -256,17 +278,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     if (hwnd) ::DestroyWindow(hwnd);
     ::UnregisterClass(wc.lpszClassName, wc.hInstance);
 
-    StatusUI::AddMessage("INFO: Shutdown complete.");
-    // Note: Status messages might not be visible after this point if logging to file isn't implemented.
-
     return 0;
 }
 
-// --- Windows Message Procedure ---
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     // Allow ImGui to handle messages first
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-        return true;
+        return true; // Message was handled by ImGui
 
     switch (msg) {
     case WM_SIZE:
@@ -281,19 +299,20 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_SYSCOMMAND:
-        // Prevent ALT menu activation
+        // Prevent ALT menu activation (often unwanted in game overlays/tools)
         if ((wParam & 0xfff0) == SC_KEYMENU)
-            return 0;
-        break;
+            return 0; // Eat the message
+        break; // Let default handler process other sys commands
 
     case WM_DESTROY:
-        ::PostQuitMessage(0); // Signal main loop to exit
+        ::PostQuitMessage(0); // Signal application to exit
         return 0;
 
     case WM_DPICHANGED:
-        // Optional: Handle DPI changes if required (update ImGui scaling, window size etc.)
+        // Optional: Handle DPI changes if required (update ImGui font scaling, window size etc.)
         break;
     }
 
+    // For messages not handled, pass to default procedure
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }

@@ -6,7 +6,7 @@ namespace StatusUI {
     // Internal state
     static std::vector<std::string> g_statusMessages;
     static std::mutex               g_statusMutex; // Protects g_statusMessages
-    static const size_t             MAX_STATUS_MESSAGES = 20; // History limit
+    static const size_t             MAX_STATUS_MESSAGES = 50; // History limit
 
     void AddMessage(const std::string& message) {
         std::lock_guard<std::mutex> lock(g_statusMutex);

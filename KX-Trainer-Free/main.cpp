@@ -98,6 +98,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;    // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;  // Enable Multi-Viewport / Platform Windows
 
+    // Disable INI file saving
+    io.IniFilename = NULL;
+
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 

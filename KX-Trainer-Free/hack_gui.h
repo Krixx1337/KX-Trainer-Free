@@ -13,18 +13,8 @@ public:
 private:
     Hack& m_hack;
 
-    // Feature states
-    bool m_fogEnabled = false;
-    bool m_objectClippingEnabled = false;
-    bool m_fullStrafeEnabled = false;
-    bool m_sprintEnabled = false;
-    bool m_invisibilityEnabled = false;
-    bool m_wallClimbEnabled = false;
-    bool m_clippingEnabled = false;
-
-    // Hold key active states
-    bool m_superSprintActive = false;
-    bool m_flyActive = false;
+    // Only GUI-specific state or user preferences here
+    bool m_sprintEnabled = false; // User's preference toggle for sprint mode
 
     // Hotkeys
     int m_key_savepos;
@@ -36,7 +26,7 @@ private:
     int m_key_full_strafe;
     int m_key_no_fog;
     int m_key_super_sprint;
-    int m_key_sprint;
+    int m_key_sprint; // Hotkey for the preference toggle (m_sprintEnabled)
     int m_key_fly;
 
     // Hotkey Rebinding State

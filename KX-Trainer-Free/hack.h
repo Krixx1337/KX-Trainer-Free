@@ -19,13 +19,13 @@ public:
     Hack(std::function<void(const std::string&)> statusCallback);
     ~Hack();
 
-    void refreshAddresses(); // Refreshes dynamic memory pointers
+    void refreshAddresses();
 
     // Feature toggles/handlers
     void toggleFog(bool enable);
     void toggleObjectClipping(bool enable);
     void toggleFullStrafe(bool enable);
-    void handleSprint(bool enable);
+    void handleSprint(bool userPrefersSprint); // Apply sprint based on user preference
     void handleSuperSprint(bool enable);
     void toggleInvisibility(bool enable);
     void toggleWallClimb(bool enable);
@@ -36,22 +36,33 @@ public:
     void savePosition();
     void loadPosition();
 
+    // --- State Getters ---
+    bool IsFogEnabled() const;
+    bool IsObjectClippingEnabled() const;
+    bool IsFullStrafeEnabled() const;
+    bool IsSuperSprinting() const; // Reflects if key was held/active
+    bool IsInvisibilityEnabled() const;
+    bool IsWallClimbEnabled() const;
+    bool IsClippingEnabled() const;
+    bool IsFlying() const;         // Reflects if key was held/active
+    // --- End State Getters ---
+
 private:
     ProcessMemoryManager m_memoryManager;
     std::function<void(const std::string&)> m_statusCallback;
 
-    uintptr_t m_baseAddress = 0; // Found via pattern scan during init
+    uintptr_t m_baseAddress = 0;
     uintptr_t m_fogAddress = 0;
     uintptr_t m_objectClippingAddress = 0;
     uintptr_t m_fullStrafeAddress = 0;
 
-    // Pointer chain offsets relative to base address
+    // Pointer chain offsets
     std::vector<unsigned int> m_xOffsets;
     std::vector<unsigned int> m_yOffsets;
     std::vector<unsigned int> m_zOffsets;
-    std::vector<unsigned int> m_zHeight1Offsets;
-    std::vector<unsigned int> m_zHeight2Offsets;
-    std::vector<unsigned int> m_gravityOffsets;
+    std::vector<unsigned int> m_zHeight1Offsets; // Invisibility
+    std::vector<unsigned int> m_zHeight2Offsets; // Clipping
+    std::vector<unsigned int> m_gravityOffsets;    // Fly
     std::vector<unsigned int> m_speedOffsets;
     std::vector<unsigned int> m_wallClimbOffsets;
 
@@ -59,24 +70,33 @@ private:
     uintptr_t m_xAddr = 0;
     uintptr_t m_yAddr = 0;
     uintptr_t m_zAddr = 0;
-    uintptr_t m_zHeight1Addr = 0;
-    uintptr_t m_zHeight2Addr = 0;
-    uintptr_t m_gravityAddr = 0;
+    uintptr_t m_zHeight1Addr = 0; // Invisibility
+    uintptr_t m_zHeight2Addr = 0; // Clipping
+    uintptr_t m_gravityAddr = 0;    // Fly
     uintptr_t m_speedAddr = 0;
     uintptr_t m_wallClimbAddr = 0;
 
-    // State variables
+    // Core memory values / state
     float m_xValue = 0.0f, m_yValue = 0.0f, m_zValue = 0.0f;
     float m_xSave = 0.0f, m_ySave = 0.0f, m_zSave = 0.0f;
     float m_speed = 0.0f, m_savedSpeed = 0.0f;
-    bool m_wasSuperSprinting = false;
-    bool m_wasSprinting = false;
-    float m_invisibility = 0.0f, m_wallClimb = 0.0f, m_clipping = 0.0f, m_fly = 0.0f;
-    byte m_objectClipping = 0;
-    byte m_fog = 0;
-    byte m_fullStrafe = 0;
+    float m_invisibilityValue = 0.0f;
+    float m_wallClimbValue = 0.0f;
+    float m_clippingValue = 0.0f;
+    float m_flyValue = 0.0f;
+    byte m_objectClippingByte = 0; // Cached byte written
+    byte m_fogByte = 0;            // Cached byte written
+    byte m_fullStrafeByte = 0;     // Cached byte written
 
-    // Private helper functions
+    // Simple feature active flags (Single Source of Truth)
+    bool m_isInvisibilityActive = false;
+    bool m_isClippingActive = false;
+    bool m_isWallClimbActive = false;
+    bool m_isFlyingActive = false;
+    bool m_wasSuperSprinting = false; // Tracks hold state from last frame
+    bool m_wasSprinting = false;      // Tracks if normal sprint *logic* was applied last frame
+
+    // Helpers
     void initializeOffsets();
     void findProcess();
     void performBaseScan();

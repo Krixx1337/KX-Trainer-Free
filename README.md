@@ -1,6 +1,6 @@
 # KX Trainer Free
 
-KX Trainer Free is a simple game trainer for Guild Wars 2 that we've decided to make open-source. The code is quite old, and we don't feel the need to keep it private anymore. It was originally started back in 2018 and has received some small updates over the years, but nothing too major.
+KX Trainer Free is a simple game trainer for Guild Wars 2 that we've decided to make open-source. The code has evolved since its origin in 2018, and we believe in transparency for tools like this.
 
 [➡️ Download the Latest Release](https://github.com/Krixx1337/KX-Trainer-Free/releases/latest)
 
@@ -8,38 +8,39 @@ KX Trainer Free is a simple game trainer for Guild Wars 2 that we've decided to 
 
 ## Why Open-Source?
 
-We believe that transparency is important, especially for a project like this. KX Trainer Free is a simple tool that’s been around for quite some time. Rather than keeping it private, we’ve decided to open it up to the community in the hope that others might find it useful or learn from it.
+We believe transparency is important, especially for game tools. KX Trainer Free has been around for a while, and opening it up allows the community to see how it works, learn from it, or contribute.
 
-This project is no longer actively maintained as our focus has shifted towards our paid products available at [kxtools.xyz](https://kxtools.xyz). However, we encourage contributions and hope the community can help improve and maintain it going forward.
+While our main development efforts focus on the advanced features in our paid tools available at [kxtools.xyz](https://kxtools.xyz), **KX Trainer Free will be actively maintained** to ensure it remains functional after Guild Wars 2 updates and to fix critical bugs. However, new features exclusive to the paid version will not be added here. We hope the community finds this base useful and potentially builds upon it.
 
 ## A Little History
 
-KX Trainer Free started as a small hobby project in 2018. Over the years, it received small updates here and there, but the core functionality has largely remained the same. The code, while functional, is still quite messy despite some cleanup before making it open-source.
+Originating as a hobby project in 2018, KX Trainer Free has evolved significantly. The codebase, while functional in its earlier versions, has recently undergone substantial refactoring to improve structure, clarity, and maintainability, resulting in a much cleaner state.
 
 ## Contributions
 
-We welcome contributions! Whether it's cleaning up the code, fixing bugs, or adding new features, feel free to submit a pull request. Since this project isn't actively maintained, your input will help keep it in shape.
+We welcome contributions! Pull requests for **bug fixes**, **compatibility updates** following game patches, or **code improvements** are highly encouraged. While new features mirroring the paid version won't be merged, community-driven additions that fit the scope of the free trainer are welcome for discussion. Your input is valuable in keeping this tool functional for everyone.
 
 ## How to Use
 
 KX Trainer Free is a C++ project designed to work on Windows using Visual Studio.
 
 ### Prerequisites
-- **Visual Studio**: Ensure that you have Visual Studio installed, with the C++ development environment set up.
+- **Visual Studio**: Ensure that you have Visual Studio installed (2019 or later recommended), with the C++ Desktop Development workload.
 
 ### Build Instructions
 
-1. **Clone the Repository**:
-   Open your terminal or Git Bash, and clone the repository:
-   ```bash
-   git clone https://github.com/Krixx1337/KX-Trainer-Free.git
-   ```
+1.  **Clone the Repository**:
+    Open your terminal or Git Bash, and clone the repository:
+    ```bash
+    git clone https://github.com/Krixx1337/KX-Trainer-Free.git
+    ```
 
-2. **Open the Project in Visual Studio**:
-   - Launch Visual Studio.
-   - Open the .sln file located in the cloned repository.
+2.  **Open the Project in Visual Studio**:
+    *   Navigate to the cloned repository directory.
+    *   Open the `KX-Trainer-Free.sln` file with Visual Studio.
+    *   Select the desired build configuration (e.g., Debug/Release, x64).
+    *   Build the solution (Build > Build Solution or `Ctrl+Shift+B`).
 
 ## Contact
 
 For any questions or support, feel free to join our [Discord server](https://discord.gg/z92rnB4kHm).
-

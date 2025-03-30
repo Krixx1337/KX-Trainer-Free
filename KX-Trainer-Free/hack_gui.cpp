@@ -3,7 +3,7 @@
 #include "constants.h"
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_internal.h" // Required for GetCurrentWindowRead
+#include "imgui/imgui_internal.h"
 
 #include <windows.h>
 #include <string>
@@ -12,17 +12,15 @@
 #include <map>
 #include <cstdio>
 
-// External globals defined elsewhere (e.g., main.cpp)
 extern std::vector<std::string> g_statusMessages;
 extern std::mutex g_statusMutex;
 
 //-----------------------------------------------------------------------------
-// Helper function to get descriptive names for VK codes
+// Helper: Get descriptive names for VK codes
 //-----------------------------------------------------------------------------
 const char* HackGUI::GetKeyName(int vk_code) {
     if (vk_code == 0) { return "None"; }
-    // Static map for common VK codes -> names
-    static std::map<int, const char*> keyNames = {
+    static std::map<int, const char*> keyNames = { /* ... map definition ... */
         {VK_LBUTTON, "LMouse"}, {VK_RBUTTON, "RMouse"}, {VK_MBUTTON, "MMouse"},
         {VK_BACK, "Backspace"}, {VK_TAB, "Tab"}, {VK_RETURN, "Enter"}, {VK_SHIFT, "Shift"},
         {VK_LSHIFT, "LShift"}, {VK_RSHIFT, "RShift"}, {VK_CONTROL, "Ctrl"}, {VK_LCONTROL, "LCtrl"},
@@ -49,7 +47,6 @@ const char* HackGUI::GetKeyName(int vk_code) {
     };
     auto it = keyNames.find(vk_code);
     if (it != keyNames.end()) return it->second;
-    // Fallback for unknown keys
     static char unknownKey[32];
     snprintf(unknownKey, sizeof(unknownKey), "VK 0x%02X", vk_code);
     return unknownKey;
@@ -59,7 +56,7 @@ const char* HackGUI::GetKeyName(int vk_code) {
 // Constructor
 //-----------------------------------------------------------------------------
 HackGUI::HackGUI(Hack& hack) : m_hack(hack) {
-    // Initialize hotkey members with default values from constants
+    // Initialize hotkeys with defaults
     m_key_savepos = Constants::Hotkeys::KEY_SAVEPOS;
     m_key_loadpos = Constants::Hotkeys::KEY_LOADPOS;
     m_key_invisibility = Constants::Hotkeys::KEY_INVISIBILITY;
@@ -71,11 +68,11 @@ HackGUI::HackGUI(Hack& hack) : m_hack(hack) {
     m_key_super_sprint = Constants::Hotkeys::KEY_SUPER_SPRINT;
     m_key_sprint = Constants::Hotkeys::KEY_SPRINT;
     m_key_fly = Constants::Hotkeys::KEY_FLY;
-    // TODO: Load saved hotkeys from a config file here
+    // TODO: Load saved hotkeys
 }
 
 //-----------------------------------------------------------------------------
-// Helper: Draw single hotkey line and handle "Change" button
+// Helper: Draw single hotkey line
 //-----------------------------------------------------------------------------
 void HackGUI::CheckAndSetHotkey(int hotkey_index, const char* name, int& key_variable) {
     ImGui::Text("%s:", name);
@@ -86,7 +83,7 @@ void HackGUI::CheckAndSetHotkey(int hotkey_index, const char* name, int& key_var
     else {
         ImGui::Text("%s", GetKeyName(key_variable));
         ImGui::SameLine(280.0f);
-        std::string button_label = "Change##" + std::string(name); // Unique ID
+        std::string button_label = "Change##" + std::string(name);
         if (ImGui::Button(button_label.c_str())) {
             m_rebinding_hotkey_index = hotkey_index;
             m_rebinding_hotkey_name = name;
@@ -95,20 +92,17 @@ void HackGUI::CheckAndSetHotkey(int hotkey_index, const char* name, int& key_var
 }
 
 //-----------------------------------------------------------------------------
-// Renders the "Always on Top" checkbox and handles its logic
+// Render "Always on Top" checkbox & logic
 //-----------------------------------------------------------------------------
 void HackGUI::RenderAlwaysOnTop() {
     static bool always_on_top_checkbox = false;
     static bool current_window_is_topmost = false;
-
     HWND current_window_hwnd = nullptr;
     ImGuiWindow* current_imgui_win = ImGui::GetCurrentWindowRead();
     if (current_imgui_win && current_imgui_win->Viewport) {
         current_window_hwnd = (HWND)current_imgui_win->Viewport->PlatformHandleRaw;
     }
-
-    if (ImGui::Checkbox("Always on Top", &always_on_top_checkbox)) { /* State change handled below */ }
-
+    if (ImGui::Checkbox("Always on Top", &always_on_top_checkbox)) {}
     if (current_window_hwnd) {
         if (always_on_top_checkbox) {
             if (!current_window_is_topmost) {
@@ -128,85 +122,130 @@ void HackGUI::RenderAlwaysOnTop() {
 }
 
 //-----------------------------------------------------------------------------
-// Handles the logic for toggling sprint based on key press
+// Handle ALL hotkey checks and actions
 //-----------------------------------------------------------------------------
-void HackGUI::HandleSprintToggle() {
-    if (m_sprintEnabled && m_key_sprint != 0) {
-        if (GetAsyncKeyState(m_key_sprint) & 1) { m_sprintActive = !m_sprintActive; }
+void HackGUI::HandleHotkeys() {
+    // --- Toggle Keys (using edge detection: & 1) ---
+    if (m_key_no_fog != 0 && (GetAsyncKeyState(m_key_no_fog) & 1)) {
+        m_fogEnabled = !m_fogEnabled;
+        m_hack.toggleFog(m_fogEnabled);
     }
-    // Apply sprint state every frame
+    if (m_key_object_clipping != 0 && (GetAsyncKeyState(m_key_object_clipping) & 1)) {
+        m_objectClippingEnabled = !m_objectClippingEnabled;
+        m_hack.toggleObjectClipping(m_objectClippingEnabled);
+    }
+    if (m_key_full_strafe != 0 && (GetAsyncKeyState(m_key_full_strafe) & 1)) {
+        m_fullStrafeEnabled = !m_fullStrafeEnabled;
+        m_hack.toggleFullStrafe(m_fullStrafeEnabled);
+    }
+    if (m_key_invisibility != 0 && (GetAsyncKeyState(m_key_invisibility) & 1)) {
+        m_invisibilityEnabled = !m_invisibilityEnabled;
+        m_hack.toggleInvisibility(m_invisibilityEnabled);
+    }
+    if (m_key_wallclimb != 0 && (GetAsyncKeyState(m_key_wallclimb) & 1)) {
+        m_wallClimbEnabled = !m_wallClimbEnabled;
+        m_hack.toggleWallClimb(m_wallClimbEnabled);
+    }
+    if (m_key_clipping != 0 && (GetAsyncKeyState(m_key_clipping) & 1)) {
+        m_clippingEnabled = !m_clippingEnabled;
+        m_hack.toggleClipping(m_clippingEnabled);
+    }
+
+    // --- Sprint Toggle (special case based on its checkbox) ---
+    if (m_sprintEnabled && m_key_sprint != 0) { // Check master enable and if key is bound
+        if (GetAsyncKeyState(m_key_sprint) & 1) {
+            m_sprintActive = !m_sprintActive; // Toggle the internal state
+            // No direct call to m_hack here, applied below
+        }
+    }
+    // Apply sprint state every frame based on the toggled state and master checkbox
     m_hack.handleSprint(m_sprintEnabled && m_sprintActive && m_key_sprint != 0);
+
+    // --- Hold Keys (checking current state: & 0x8000) ---
+    // Super Sprint
+    bool superSprintKeyPressed = (m_key_super_sprint != 0 && (GetAsyncKeyState(m_key_super_sprint) & 0x8000) != 0);
+    if (superSprintKeyPressed != m_superSprintActive) { // Check if state *changed*
+        m_superSprintActive = superSprintKeyPressed;
+        m_hack.handleSuperSprint(m_superSprintActive); // Notify Hack only on change
+    }
+    // Fly
+    bool flyKeyPressed = (m_key_fly != 0 && (GetAsyncKeyState(m_key_fly) & 0x8000) != 0);
+    if (flyKeyPressed != m_flyActive) { // Check if state *changed*
+        m_flyActive = flyKeyPressed;
+        m_hack.handleFly(m_flyActive); // Notify Hack only on change
+    }
+
+    // --- Action Keys (using edge detection: & 1) ---
+    if (m_key_savepos != 0 && (GetAsyncKeyState(m_key_savepos) & 1)) {
+        m_hack.savePosition();
+        // Optional: m_hack.reportStatus("INFO: Position Saved (Hotkey)");
+    }
+    if (m_key_loadpos != 0 && (GetAsyncKeyState(m_key_loadpos) & 1)) {
+        m_hack.loadPosition();
+        // Optional: m_hack.reportStatus("INFO: Position Loaded (Hotkey)");
+    }
 }
 
 //-----------------------------------------------------------------------------
-// Handles the logic for capturing new hotkey bindings
+// Handle capturing new hotkey bindings
 //-----------------------------------------------------------------------------
 void HackGUI::HandleHotkeyRebinding() {
-    if (m_rebinding_hotkey_index == -1) return; // Not currently rebinding
+    if (m_rebinding_hotkey_index == -1) return; // Not rebinding
 
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Rebinding '%s'. Press a key (ESC to cancel, DEL/BKSP to clear)...", m_rebinding_hotkey_name);
-    ImGui::Separator();
-
-    int captured_vk = -1; // -1 = no action; 0 = clear; VK_ESCAPE = cancel; >0 = new key
+    int captured_vk = -1;
 
     if (GetAsyncKeyState(VK_ESCAPE) & 1) { captured_vk = VK_ESCAPE; }
     else if ((GetAsyncKeyState(VK_DELETE) & 1) || (GetAsyncKeyState(VK_BACK) & 1)) { captured_vk = 0; }
     else {
         for (int vk = VK_MBUTTON; vk < VK_OEM_CLEAR; ++vk) {
-            if (vk == VK_SHIFT || vk == VK_LSHIFT || vk == VK_RSHIFT ||
-                vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL ||
-                vk == VK_MENU || vk == VK_LMENU || vk == VK_RMENU ||
-                vk == VK_ESCAPE || vk == VK_CAPITAL || vk == VK_NUMLOCK || vk == VK_SCROLL ||
-                vk == VK_DELETE || vk == VK_BACK || vk == VK_LBUTTON || vk == VK_RBUTTON)
+            if (// Special action keys for rebinding
+                vk == VK_ESCAPE || vk == VK_DELETE || vk == VK_BACK ||
+                // Mouse buttons that interfere with UI clicking
+                vk == VK_LBUTTON || vk == VK_RBUTTON ||
+                // Generic modifiers (ambiguous, bind L/R specific instead)
+                vk == VK_SHIFT || vk == VK_CONTROL || vk == VK_MENU ||
+                // Toggle keys that are usually not intended for direct binding
+                vk == VK_CAPITAL || vk == VK_NUMLOCK || vk == VK_SCROLL
+                )
             {
-                continue;
-            } // Skip modifiers, mouse, special keys
-
-            if (GetAsyncKeyState(vk) & 1) {
-                captured_vk = vk;
-                break;
+                continue; // Skip this key
             }
-        }
-    }
 
-    // If action was taken (ESC, Clear, or Key Capture)
+            if (GetAsyncKeyState(vk) & 1) { captured_vk = vk; break; }
+        }
+    }w
+
+    // If action was taken
     if (captured_vk != -1) {
-        if (captured_vk != VK_ESCAPE) { // Don't assign if cancelled
+        if (captured_vk != VK_ESCAPE) {
             int* key_to_set = nullptr;
             switch (m_rebinding_hotkey_index) {
-            case 0:  key_to_set = &m_key_savepos; break;
-            case 1:  key_to_set = &m_key_loadpos; break;
-            case 2:  key_to_set = &m_key_invisibility; break;
-            case 3:  key_to_set = &m_key_wallclimb; break;
-            case 4:  key_to_set = &m_key_clipping; break;
-            case 5:  key_to_set = &m_key_object_clipping; break;
-            case 6:  key_to_set = &m_key_full_strafe; break;
-            case 7:  key_to_set = &m_key_no_fog; break;
-            case 8:  key_to_set = &m_key_super_sprint; break;
-            case 9:  key_to_set = &m_key_sprint; break;
+            case 0: key_to_set = &m_key_savepos; break; case 1: key_to_set = &m_key_loadpos; break;
+            case 2: key_to_set = &m_key_invisibility; break; case 3: key_to_set = &m_key_wallclimb; break;
+            case 4: key_to_set = &m_key_clipping; break; case 5: key_to_set = &m_key_object_clipping; break;
+            case 6: key_to_set = &m_key_full_strafe; break; case 7: key_to_set = &m_key_no_fog; break;
+            case 8: key_to_set = &m_key_super_sprint; break; case 9: key_to_set = &m_key_sprint; break;
             case 10: key_to_set = &m_key_fly; break;
             }
-            if (key_to_set) {
-                *key_to_set = captured_vk;
-                // TODO: Save updated hotkeys to config file
-            }
+            if (key_to_set) { *key_to_set = captured_vk; /* TODO: Save config */ }
         }
-        // Reset state after any action
-        m_rebinding_hotkey_index = -1;
+        m_rebinding_hotkey_index = -1; // Reset state
         m_rebinding_hotkey_name = nullptr;
     }
 }
 
 //-----------------------------------------------------------------------------
-// Renders the Toggles Section
+// Render Toggles Section
 //-----------------------------------------------------------------------------
 void HackGUI::RenderTogglesSection() {
     if (ImGui::CollapsingHeader("Toggles", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Checkboxes now primarily reflect state, but can also change it.
+        // Hotkeys also change the underlying m_XXXEnabled state.
         if (ImGui::Checkbox("No Fog", &m_fogEnabled)) { m_hack.toggleFog(m_fogEnabled); }
         if (ImGui::Checkbox("Object Clipping", &m_objectClippingEnabled)) { m_hack.toggleObjectClipping(m_objectClippingEnabled); }
         if (ImGui::Checkbox("Full Strafe", &m_fullStrafeEnabled)) { m_hack.toggleFullStrafe(m_fullStrafeEnabled); }
         if (ImGui::Checkbox("Enable Sprint Key", &m_sprintEnabled)) {
-            if (!m_sprintEnabled) { m_sprintActive = false; } // Ensure inactive if disabled
+            if (!m_sprintEnabled) { m_sprintActive = false; } // Force off if disabled
         }
         ImGui::SameLine(); ImGui::TextDisabled("(Toggles with %s)", GetKeyName(m_key_sprint));
         if (ImGui::Checkbox("Invisibility (Mobs)", &m_invisibilityEnabled)) { m_hack.toggleInvisibility(m_invisibilityEnabled); }
@@ -217,70 +256,57 @@ void HackGUI::RenderTogglesSection() {
 }
 
 //-----------------------------------------------------------------------------
-// Renders the Actions Section
+// Render Actions Section
 //-----------------------------------------------------------------------------
 void HackGUI::RenderActionsSection() {
     if (ImGui::CollapsingHeader("Actions", ImGuiTreeNodeFlags_DefaultOpen)) {
         float button_width = ImGui::GetContentRegionAvail().x * 0.48f;
         if (ImGui::Button("Save Position", ImVec2(button_width, 0))) { m_hack.savePosition(); }
         ImGui::SameLine();
-        if (ImGui::Button("Load Position", ImVec2(-1.0f, 0))) { m_hack.loadPosition(); } // Use remaining width
+        if (ImGui::Button("Load Position", ImVec2(-1.0f, 0))) { m_hack.loadPosition(); }
         ImGui::Spacing();
     }
 }
 
 //-----------------------------------------------------------------------------
-// Renders the Keys Status Section
+// Render Keys Status Section (REMOVED - No longer needed)
 //-----------------------------------------------------------------------------
-void HackGUI::RenderKeysStatusSection() {
-    if (ImGui::CollapsingHeader("Keys Status", ImGuiTreeNodeFlags_DefaultOpen)) {
-        // Super Sprint (Hold)
-        bool superSprintKeyPressed = (m_key_super_sprint != 0 && (GetAsyncKeyState(m_key_super_sprint) & 0x8000) != 0);
-        if (superSprintKeyPressed != m_superSprintEnabled) {
-            m_superSprintEnabled = superSprintKeyPressed;
-            m_hack.handleSuperSprint(m_superSprintEnabled); // Notify only on change
-        }
-        ImGui::Text("Super Sprint (%s): %s", GetKeyName(m_key_super_sprint), m_superSprintEnabled ? "Active (Holding)" : "Inactive");
-
-        // Fly (Hold)
-        bool flyKeyPressed = (m_key_fly != 0 && (GetAsyncKeyState(m_key_fly) & 0x8000) != 0);
-        if (flyKeyPressed != m_flyEnabled) {
-            m_flyEnabled = flyKeyPressed;
-            m_hack.handleFly(m_flyEnabled); // Notify only on change
-        }
-        ImGui::Text("Fly (%s):          %s", GetKeyName(m_key_fly), m_flyEnabled ? "Active (Holding)" : "Inactive");
-
-        // Sprint (Toggle)
-        ImGui::Text("Sprint (%s):       %s", GetKeyName(m_key_sprint), m_sprintActive ? "Active (Toggled)" : "Inactive");
-        if (!m_sprintEnabled) { ImGui::SameLine(); ImGui::TextDisabled("(Enable checkbox first)"); }
-        else if (m_key_sprint == 0) { ImGui::SameLine(); ImGui::TextDisabled("(No key bound)"); }
-        ImGui::Spacing();
-    }
-}
+// void HackGUI::RenderKeysStatusSection() { /* ... */ } // DELETE THIS FUNCTION
 
 //-----------------------------------------------------------------------------
-// Renders the Hotkeys Section
+// Render Hotkeys Section
 //-----------------------------------------------------------------------------
 void HackGUI::RenderHotkeysSection() {
     if (ImGui::CollapsingHeader("Hotkeys")) {
+        if (m_rebinding_hotkey_index != -1) {
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Rebinding '%s'. Press a key (ESC to cancel, DEL/BKSP to clear)...", m_rebinding_hotkey_name);
+            ImGui::Separator();
+        }
+
         bool flags_pushed = false;
-        if (m_rebinding_hotkey_index != -1) { // Dim controls while rebinding
+        if (m_rebinding_hotkey_index != -1) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
             flags_pushed = true;
         }
 
+        // Action Hotkeys
         CheckAndSetHotkey(0, "Save Position", m_key_savepos);
         CheckAndSetHotkey(1, "Load Position", m_key_loadpos);
+        ImGui::Separator(); // Separate action keys from toggles
+        // Toggle Hotkeys
+        CheckAndSetHotkey(7, "No Fog", m_key_no_fog);
+        CheckAndSetHotkey(5, "Object Clipping", m_key_object_clipping);
+        CheckAndSetHotkey(6, "Full Strafe", m_key_full_strafe);
         CheckAndSetHotkey(2, "Invisibility", m_key_invisibility);
         CheckAndSetHotkey(3, "Wall Climb", m_key_wallclimb);
         CheckAndSetHotkey(4, "Clipping", m_key_clipping);
-        CheckAndSetHotkey(5, "Object Clipping", m_key_object_clipping);
-        CheckAndSetHotkey(6, "Full Strafe", m_key_full_strafe);
-        CheckAndSetHotkey(7, "No Fog", m_key_no_fog);
-        CheckAndSetHotkey(8, "Super Sprint", m_key_super_sprint);
         CheckAndSetHotkey(9, "Sprint", m_key_sprint);
+        ImGui::Separator(); // Separate hold keys
+        // Hold Hotkeys
+        CheckAndSetHotkey(8, "Super Sprint", m_key_super_sprint);
         CheckAndSetHotkey(10, "Fly", m_key_fly);
+
 
         if (flags_pushed) {
             ImGui::PopItemFlag();
@@ -291,53 +317,42 @@ void HackGUI::RenderHotkeysSection() {
 }
 
 //-----------------------------------------------------------------------------
-// Renders the Log Section
+// Render Log Section
 //-----------------------------------------------------------------------------
 void HackGUI::RenderLogSection() {
-    if (ImGui::CollapsingHeader("Log", ImGuiTreeNodeFlags_None)) { // Default closed
+    if (ImGui::CollapsingHeader("Log", ImGuiTreeNodeFlags_None)) {
         ImGui::BeginChild("LogScrollingRegion", ImVec2(0, 100), true, ImGuiWindowFlags_HorizontalScrollbar); {
             std::lock_guard<std::mutex> lock(g_statusMutex);
             for (const auto& msg : g_statusMessages) {
                 ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-                if (msg.rfind("ERROR:", 0) == 0)      color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
-                else if (msg.rfind("WARN:", 0) == 0)  color = ImVec4(1.0f, 1.0f, 0.4f, 1.0f);
-                else if (msg.rfind("INFO:", 0) == 0)  color = ImVec4(0.5f, 1.0f, 0.5f, 1.0f);
+                if (msg.rfind("ERROR:", 0) == 0) color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
+                else if (msg.rfind("WARN:", 0) == 0) color = ImVec4(1.0f, 1.0f, 0.4f, 1.0f);
+                else if (msg.rfind("INFO:", 0) == 0) color = ImVec4(0.5f, 1.0f, 0.5f, 1.0f);
                 ImGui::TextColored(color, "%s", msg.c_str());
             }
-            // Auto-scroll if near the bottom
-            if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - ImGui::GetTextLineHeight() * 2) {
-                ImGui::SetScrollHereY(1.0f);
-            }
+            if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - ImGui::GetTextLineHeight() * 2) ImGui::SetScrollHereY(1.0f);
         } ImGui::EndChild();
-
-        if (ImGui::Button("Clear Log")) {
-            std::lock_guard<std::mutex> lock(g_statusMutex);
-            g_statusMessages.clear();
-        }
+        if (ImGui::Button("Clear Log")) { std::lock_guard<std::mutex> lock(g_statusMutex); g_statusMessages.clear(); }
         ImGui::Spacing();
     }
 }
 
 //-----------------------------------------------------------------------------
-// Renders the Info Section
+// Render Info Section (Simplified)
 //-----------------------------------------------------------------------------
 void HackGUI::RenderInfoSection() {
     if (ImGui::CollapsingHeader("Info")) {
         ImGui::Text("KX Trainer by Krixx");
         ImGui::Text("GitHub: https://github.com/Krixx1337/KX-Trainer-Free");
         ImGui::Separator();
-        ImGui::Text("Key Reminders:");
-        ImGui::BulletText("Super Sprint: %s (Hold)", GetKeyName(m_key_super_sprint));
-        ImGui::BulletText("Fly: %s (Hold)", GetKeyName(m_key_fly));
-        ImGui::BulletText("Sprint: %s (Toggle, if enabled)", GetKeyName(m_key_sprint));
-        ImGui::Separator();
+        // Key reminders removed - the Hotkeys section is the source of truth
         ImGui::Text("Consider the paid version at kxtools.xyz!");
         ImGui::Spacing();
     }
 }
 
 //-----------------------------------------------------------------------------
-// Main UI rendering function (Calls helpers)
+// Main UI rendering function
 //-----------------------------------------------------------------------------
 bool HackGUI::renderUI()
 {
@@ -354,16 +369,16 @@ bool HackGUI::renderUI()
 
     // Update Core Logic States
     m_hack.refreshAddresses();
-    HandleSprintToggle(); // Handle sprint logic (toggle detection + apply)
-    HandleHotkeyRebinding(); // Handle input capture if rebinding is active
+    HandleHotkeys(); // Handles ALL hotkey checks and applies state
+    HandleHotkeyRebinding(); // Handles input capture if rebinding
 
     // Render UI Sections
-    RenderTogglesSection();
+    RenderTogglesSection();    // Checkboxes reflect state changed by hotkeys too
     RenderActionsSection();
-    RenderKeysStatusSection();
-    RenderHotkeysSection();
+    // RenderKeysStatusSection(); // REMOVED
+    RenderHotkeysSection();      // Definitive list of current bindings
     RenderLogSection();
-    RenderInfoSection();
+    RenderInfoSection();       // Simplified, no key reminders
 
     ImGui::End(); // End main window
 

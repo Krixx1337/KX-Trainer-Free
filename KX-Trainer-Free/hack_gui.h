@@ -9,26 +9,24 @@ class Hack;
 class HackGUI {
 public:
     HackGUI(Hack& hack);
-
-    // Renders the ImGui UI. Returns true if exit is requested.
     bool renderUI();
 
 private:
     Hack& m_hack; // Reference to the core application logic
 
-    // Feature states managed by the GUI
+    // Feature states synchronized between GUI and Hotkeys
     bool m_fogEnabled = false;
     bool m_objectClippingEnabled = false;
     bool m_fullStrafeEnabled = false;
-    bool m_sprintEnabled = true; // Default sprint key check ON
+    bool m_sprintEnabled = true; // Checkbox state: Is sprint *allowed* by user?
     bool m_invisibilityEnabled = false;
     bool m_wallClimbEnabled = false;
     bool m_clippingEnabled = false;
 
-    // Hold/Toggle key status states
-    bool m_superSprintEnabled = false;
-    bool m_flyEnabled = false;
-    bool m_sprintActive = false;
+    // Key status states (Hold/Toggle)
+    bool m_superSprintActive = false; // Active while key is held
+    bool m_flyActive = false;         // Active while key is held
+    bool m_sprintActive = false;      // Is sprint currently toggled ON?
 
     // Modifiable Hotkeys
     int m_key_savepos;
@@ -51,16 +49,15 @@ private:
     void RenderAlwaysOnTop();
     void RenderTogglesSection();
     void RenderActionsSection();
-    void RenderKeysStatusSection();
+    // Removed: void RenderKeysStatusSection(); // No longer needed
     void RenderHotkeysSection();
     void RenderLogSection();
-    void RenderInfoSection();
-    // ----------------------------------
+    void RenderInfoSection(); // Will be simplified
 
     // --- Private Logic Handling Methods ---
-    void HandleSprintToggle();
+    // Removed: void HandleSprintToggle(); // Merged into HandleHotkeys
+    void HandleHotkeys(); // Handles ALL hotkey checks
     void HandleHotkeyRebinding();
-    // ------------------------------------
 
     // Helper function declarations
     const char* GetKeyName(int vk_code);

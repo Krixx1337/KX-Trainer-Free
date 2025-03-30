@@ -3,7 +3,14 @@
 #include <vector>
 #include <windows.h>
 #include <functional>
+#include <stdexcept>
 #include <string>
+
+class HackInitializationError : public std::runtime_error {
+public:
+    HackInitializationError(const std::string& message)
+        : std::runtime_error(message) {}
+};
 
 class Hack {
 public:

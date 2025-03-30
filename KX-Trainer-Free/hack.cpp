@@ -5,6 +5,9 @@
 #include "constants.h"
 #include <thread>
 #include <chrono>
+#include <string>
+#include <sstream>
+#include <iomanip>
 
 using namespace Constants::Process;
 using namespace Constants::Offsets;
@@ -12,23 +15,55 @@ using namespace Constants::Scan;
 using namespace Constants::Patterns;
 using namespace Constants::Settings;
 
+// Helper to format addresses
+std::string to_hex_string(uintptr_t address) {
+    std::ostringstream oss;
+    oss << "0x" << std::hex << std::uppercase << address;
+    return oss.str();
+}
+
+// --- Constructor ---
 Hack::Hack(std::function<void(const std::string&)> statusCallback)
     : m_statusCallback(std::move(statusCallback))
 {
-    initializeOffsets();
-    findProcess();
-    performBaseScan();
-    scanForPatterns();
-}
-
-Hack::~Hack() {
-    if (m_processHandle) {
-        CloseHandle(m_processHandle);
+    reportStatus("INFO: Initializing KX Trainer..."); // Start message
+    try {
+        initializeOffsets(); // No status needed for this internal setup
+        findProcess();       // Reports success/failure internally
+        performBaseScan();   // Reports attempts, success/failure internally
+        scanForPatterns();   // Reports success/failure internally
+        reportStatus("INFO: Initialization successful."); // Final success message
+    }
+    catch (const HackInitializationError& e) {
+        // Error already reported before throwing, just re-throw
+        throw;
+    }
+    catch (const std::exception& e) {
+        // Report unexpected standard errors
+        reportStatus("ERROR: An unexpected standard error occurred during initialization - " + std::string(e.what()));
+        throw HackInitializationError("Unexpected standard error during initialization.");
+    }
+    catch (...) {
+        // Report unknown errors
+        reportStatus("ERROR: An unknown error occurred during initialization.");
+        throw HackInitializationError("Unknown error during initialization.");
     }
 }
 
+// --- Destructor ---
+Hack::~Hack() {
+    if (m_processHandle) {
+        CloseHandle(m_processHandle);
+        // No need to report status on destruction
+        m_processHandle = nullptr;
+    }
+}
+
+// --- Initialization Steps ---
+
 void Hack::initializeOffsets()
 {
+    // No status reporting needed for internal variable setup
     m_xOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x120 };
     m_yOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x128 };
     m_zOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x124 };
@@ -40,48 +75,113 @@ void Hack::initializeOffsets()
 }
 
 void Hack::findProcess() {
-    m_processId = GetProcID(GW2_PROCESS_NAME);
-    m_processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, m_processId);
+    reportStatus("INFO: Searching for process: " + std::string(GW2_PROCESS_NAME_A));
+    m_processId = GetProcID(GW2_PROCESS_NAME_W);
 
-    if (m_processHandle == nullptr) {
-        reportStatus("Gw2-64.exe process not found! Exiting...");
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-        exit(0);
+    if (m_processId == 0) {
+        std::string errorMsg = "Process '" + std::string(GW2_PROCESS_NAME_A) + "' not found. Please ensure the game is running.";
+        reportStatus("ERROR: " + errorMsg); // Report failure before throwing
+        throw HackInitializationError(errorMsg);
     }
+    // Skip intermediate "found, opening handle" message
+    // reportStatus("INFO: Process found (PID: " + std::to_string(m_processId) + "). Opening handle...");
+
+    m_processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, m_processId);
+    if (m_processHandle == nullptr) {
+        DWORD error = GetLastError();
+        std::string errorMsg = "Failed to open process handle (Error " + std::to_string(error) + "). Try running as administrator.";
+        reportStatus("ERROR: " + errorMsg); // Report failure before throwing
+        throw HackInitializationError(errorMsg);
+    }
+
+    reportStatus("INFO: Process handle obtained successfully."); // Confirm success of this stage
 }
 
 void Hack::performBaseScan() {
+    reportStatus("INFO: Starting base address scan...");
     int scans = 0;
     unsigned int baseValue = 0;
 
-    while (m_baseAddress == 0 || baseValue <= BASE_ADDRESS_MIN_VALUE) {
-        m_baseAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, BASE_SCAN_PATTERN, BASE_SCAN_MASK));
+    while (scans < MAX_BASE_SCAN_ATTEMPTS) {
+        scans++;
+        // Report scan attempts as this can take time and reassures the user
+        reportStatus("INFO: Scanning for Base Address... (Attempt " + std::to_string(scans) + "/" + std::to_string(MAX_BASE_SCAN_ATTEMPTS) + ")");
 
-        if (m_baseAddress != 0) {
-            m_baseAddress -= BASE_ADDRESS_OFFSET;
-        }
+        uintptr_t potentialBaseAddress = reinterpret_cast<uintptr_t>(
+            PatternScanExModule(m_processHandle, GW2_PROCESS_NAME_W, GW2_PROCESS_NAME_W, BASE_SCAN_PATTERN, BASE_SCAN_MASK)
+            );
 
-        if (m_baseAddress == 0) {
-            scans++;
-            reportStatus("Scanning for Base Address... " + std::to_string(scans));
-        }
-        else {
-            ReadMemory(m_processHandle, m_baseAddress, baseValue);
-            reportStatus("Waiting for character selection...");
-        }
+        if (potentialBaseAddress != 0) {
+            potentialBaseAddress -= BASE_ADDRESS_OFFSET;
+            // Skip intermediate "potential address found" message
+            // reportStatus("INFO: Potential base address found at " + to_hex_string(potentialBaseAddress) + ". Validating...");
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+            if (ReadMemory(m_processHandle, potentialBaseAddress, baseValue)) {
+                if (baseValue > BASE_ADDRESS_MIN_VALUE) {
+                    m_baseAddress = potentialBaseAddress;
+                    reportStatus("INFO: Base address validated: " + to_hex_string(m_baseAddress)); // Report success
+                    return;
+                }
+                else {
+                    // Keep warnings, they might indicate an issue (e.g., not logged in)
+                    std::ostringstream oss_val;
+                    oss_val << "0x" << std::hex << baseValue;
+                    reportStatus("WARN: Base address found, but value (" + oss_val.str() + ") is too low. Retrying scan...");
+                }
+            }
+            else {
+                reportStatus("WARN: Base address found, but failed to read validation value. Retrying scan...");
+            }
+        }
+        // No need to report "pattern not found in this attempt" - the attempt counter covers this
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(BASE_SCAN_RETRY_DELAY_MS));
     }
+
+    // If loop finishes, it failed
+    std::string errorMsg = "Failed to find or validate base address after maximum attempts. Ensure you are logged into a character.";
+    reportStatus("ERROR: " + errorMsg); // Report failure before throwing
+    throw HackInitializationError(errorMsg);
 }
 
 void Hack::scanForPatterns()
 {
-    m_fogAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FOG_PATTERN, FOG_MASK));
+    reportStatus("INFO: Scanning for feature patterns...");
+
+    // Fog
+    m_fogAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME_W, GW2_PROCESS_NAME_W, FOG_PATTERN, FOG_MASK));
+    if (m_fogAddress == 0) {
+        std::string errorMsg = "Failed to find Fog pattern. Game version might be incompatible.";
+        reportStatus("ERROR: " + errorMsg);
+        throw HackInitializationError(errorMsg);
+    }
     m_fogAddress += 0x3;
-    m_objectClippingAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK));
-    m_fullStrafeAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME, GW2_PROCESS_NAME, FULL_STRAFE_PATTERN, FULL_STRAFE_MASK));
+    // reportStatus("INFO: Fog pattern found at " + to_hex_string(m_fogAddress)); // Optional: Can be removed
+
+    // Object Clipping
+    m_objectClippingAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME_W, GW2_PROCESS_NAME_W, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK));
+    if (m_objectClippingAddress == 0) {
+        std::string errorMsg = "Failed to find Object Clipping pattern. Game version might be incompatible.";
+        reportStatus("ERROR: " + errorMsg);
+        throw HackInitializationError(errorMsg);
+    }
+    // reportStatus("INFO: Object Clipping pattern found at " + to_hex_string(m_objectClippingAddress)); // Optional: Can be removed
+
+    // Full Strafe
+    m_fullStrafeAddress = reinterpret_cast<uintptr_t>(PatternScanExModule(m_processHandle, GW2_PROCESS_NAME_W, GW2_PROCESS_NAME_W, FULL_STRAFE_PATTERN, FULL_STRAFE_MASK));
+    if (m_fullStrafeAddress == 0) {
+        std::string errorMsg = "Failed to find Full Strafe pattern. Game version might be incompatible.";
+        reportStatus("ERROR: " + errorMsg);
+        throw HackInitializationError(errorMsg);
+    }
     m_fullStrafeAddress += 0x2;
+    // reportStatus("INFO: Full Strafe pattern found at " + to_hex_string(m_fullStrafeAddress)); // Optional: Can be removed
+
+    // Only report overall success for this stage
+    reportStatus("INFO: Feature patterns found successfully.");
 }
+
+// --- Other Methods ---
 
 void Hack::refreshAddresses() {
     m_xAddr = refreshAddr(m_xOffsets);
@@ -113,7 +213,7 @@ uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
 
 void Hack::reportStatus(const std::string& message) {
     if (m_statusCallback) {
-        m_statusCallback(message);
+        m_statusCallback(message); // Pass message to the GUI thread
     }
 }
 

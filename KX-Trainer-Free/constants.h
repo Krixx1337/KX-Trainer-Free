@@ -8,13 +8,16 @@ namespace Constants {
 
     // Process
     namespace Process {
-        constexpr wchar_t* GW2_PROCESS_NAME = L"Gw2-64.exe";
+        constexpr wchar_t* GW2_PROCESS_NAME_W = L"Gw2-64.exe";
+        constexpr const char* GW2_PROCESS_NAME_A = "Gw2-64.exe";
     }
 
     // Scan Configuration
     namespace Scan {
         constexpr unsigned int BASE_ADDRESS_MIN_VALUE = 10000;
         constexpr uintptr_t BASE_ADDRESS_OFFSET = 0x8;
+        constexpr int MAX_BASE_SCAN_ATTEMPTS = 15;
+        constexpr int BASE_SCAN_RETRY_DELAY_MS = 1000;
     }
 
     // Patterns and Masks

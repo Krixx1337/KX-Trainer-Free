@@ -101,6 +101,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="d3d_manager.cpp" />
     <ClCompile Include="hack_gui.cpp" />
     <ClCompile Include="http_client.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
@@ -115,9 +116,11 @@
     <ClCompile Include="memhack.cpp" />
     <ClCompile Include="patternscan.cpp" />
     <ClCompile Include="processtools.cpp" />
+    <ClCompile Include="status_ui.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="constants.h" />
+    <ClInclude Include="d3d_manager.h" />
     <ClInclude Include="hack_gui.h" />
     <ClInclude Include="http_client.h" />
     <ClInclude Include="hack.h" />
@@ -134,6 +137,7 @@
     <ClInclude Include="memoryutils.h" />
     <ClInclude Include="patternscan.h" />
     <ClInclude Include="processtools.h" />
+    <ClInclude Include="status_ui.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

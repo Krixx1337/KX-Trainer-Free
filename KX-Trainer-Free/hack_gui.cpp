@@ -1,6 +1,7 @@
 #include "hack_gui.h"
 #include "hack.h"
 #include "constants.h"
+#include "status_ui.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -11,10 +12,6 @@
 #include <mutex>
 #include <map>
 #include <cstdio> // For snprintf
-
-// TODO: Consider moving global state into a shared context or message queue
-extern std::vector<std::string> g_statusMessages;
-extern std::mutex g_statusMutex;
 
 const char* HackGUI::GetKeyName(int vk_code) {
     if (vk_code == 0) { return "None"; }
@@ -307,8 +304,11 @@ void HackGUI::RenderLogSection() {
         // Scrolling region for log messages
         ImGui::BeginChild("LogScrollingRegion", ImVec2(0, 100), true, ImGuiWindowFlags_HorizontalScrollbar);
         {
-            std::lock_guard<std::mutex> lock(g_statusMutex); // Protect access to shared log messages
-            for (const auto& msg : g_statusMessages) {
+            // Get a thread-safe copy of the messages from StatusUI
+            std::vector<std::string> current_messages = StatusUI::GetMessages(); // <--- USE GetMessages()
+
+            // No need to lock mutex here, we are working with a copy
+            for (const auto& msg : current_messages) { // <--- Iterate the copy
                 // Basic coloring based on prefix
                 ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_Text); // Default
                 if (msg.rfind("ERROR:", 0) == 0) color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); // Red
@@ -324,8 +324,7 @@ void HackGUI::RenderLogSection() {
         ImGui::EndChild();
 
         if (ImGui::Button("Clear Log")) {
-            std::lock_guard<std::mutex> lock(g_statusMutex);
-            g_statusMessages.clear();
+            StatusUI::ClearMessages(); // <--- USE ClearMessages()
         }
         ImGui::Spacing();
     }

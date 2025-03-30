@@ -28,4 +28,7 @@ private:
     // Hold-key states (updated each frame)
     bool m_superSprintEnabled = false;
     bool m_flyEnabled = false;
+
+    // Sprint Toggle State
+    bool m_sprintActive = false; // Is sprint currently toggled ON?
 };

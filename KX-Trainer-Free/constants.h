@@ -42,17 +42,18 @@ namespace Constants {
 
     // Hotkeys
     namespace Hotkeys {
-        constexpr int KEY_SAVEPOS = 0x61;  // NUMPAD1
-        constexpr int KEY_LOADPOS = 0x62;  // NUMPAD2
-        constexpr int KEY_INVISIBILITY = 0x63;  // NUMPAD3
-        constexpr int KEY_WALLCLIMB = 0x64;  // NUMPAD4
-        constexpr int KEY_CLIPPING = 0x65;  // NUMPAD5
-        constexpr int KEY_OBJECT_CLIPPING = 0x66;  // NUMPAD6
-        constexpr int KEY_FULL_STRAFE = 0x67;  // NUMPAD7
-        constexpr int KEY_NO_FOG = 0x68;  // NUMPAD8
-        constexpr int KEY_SUPER_SPRINT = 0x6B;  // NUMPAD+
-        constexpr int KEY_SPRINT = 0xA0;  // Left Shift
-        constexpr int KEY_FLY = 0xA2;  // Left Ctrl
+        // Recommended Default Bindings
+        constexpr int KEY_SAVEPOS = VK_F5;          // F5
+        constexpr int KEY_LOADPOS = VK_F6;          // F6
+        constexpr int KEY_INVISIBILITY = VK_F7;     // F7
+        constexpr int KEY_WALLCLIMB = VK_F8;        // F8
+        constexpr int KEY_CLIPPING = VK_F9;         // F9
+        constexpr int KEY_OBJECT_CLIPPING = VK_F10; // F10
+        constexpr int KEY_FULL_STRAFE = VK_INSERT;  // Insert
+        constexpr int KEY_NO_FOG = VK_HOME;         // Home
+        constexpr int KEY_SUPER_SPRINT = VK_RSHIFT; // Right Shift
+        constexpr int KEY_SPRINT = VK_LSHIFT;       // Left Shift
+        constexpr int KEY_FLY = VK_LCONTROL;        // Left Ctrl
     }
 
     // Settings

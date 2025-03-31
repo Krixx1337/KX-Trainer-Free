@@ -1,12 +1,63 @@
+#define NOMINMAX
+
 #include "gui_style.h"
 #include "imgui/imgui.h"
-#include <algorithm> // Required for std::min
+#include <algorithm> // Required for std::min/max
+
+// Headers needed for font loading
+#include <windows.h>
+#include <string>
+#include <ShlObj.h>       // For SHGetFolderPath
+#pragma comment(lib, "Shell32.lib") // Link Shell32.lib
 
 namespace GUIStyle {
 
     // Helper function to convert RGB to ImVec4 (alpha defaults to 1.0f)
     inline ImVec4 RgbToVec4(int r, int g, int b) {
         return ImVec4(static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f, 1.0f);
+    }
+
+    // Gets the system Fonts directory path
+    std::string GetSystemFontsPath() {
+        char fontsPath[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_FONTS, NULL, 0, fontsPath))) {
+            return std::string(fontsPath);
+        }
+        return ""; // Return empty string on failure
+    }
+
+    // Loads the primary application font (Bahnschrift).
+    // Should be called after ImGui::CreateContext() and before renderer init.
+    // Returns true if custom font was loaded successfully, false otherwise.
+    bool LoadAppFont(float fontSize) {
+        ImGuiIO& io = ImGui::GetIO();
+        bool success = false;
+
+        // Add default font first as a fallback
+        io.Fonts->AddFontDefault();
+
+        std::string fontsDir = GetSystemFontsPath();
+        if (!fontsDir.empty()) {
+            std::string fontPath = fontsDir + "\\bahnschrift.ttf"; // Use Bahnschrift
+
+            ImFont* customFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), fontSize);
+
+            if (customFont) {
+                // Set the loaded font as the default for ImGui to use.
+                io.FontDefault = customFont;
+                success = true;
+            }
+            else {
+                // Log or notify if Bahnschrift isn't found (it's not on all Windows versions)
+                MessageBoxA(NULL, ("Failed to load Bahnschrift font from: " + fontPath + ". Using default.").c_str(), "Font Warning", MB_OK | MB_ICONWARNING);
+                // Fallback to default font is already handled by AddFontDefault()
+            }
+        }
+        else {
+            MessageBoxA(NULL, "Could not determine System Fonts directory path!", "Font Error", MB_OK | MB_ICONERROR);
+            // Fallback handled
+        }
+        return success;
     }
 
     void ApplyCustomStyle() {

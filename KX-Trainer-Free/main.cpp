@@ -111,6 +111,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     io.IniFilename = nullptr; // Disable .ini saving
 
+    GUIStyle::LoadAppFont(16.0f);
     GUIStyle::ApplyCustomStyle();
 
     ImGui_ImplWin32_Init(hwnd);

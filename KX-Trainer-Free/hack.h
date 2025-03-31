@@ -18,6 +18,7 @@ class Hack {
 public:
     Hack(std::function<void(const std::string&)> statusCallback);
     ~Hack();
+    bool Initialize(); // Performs process attachment and initial scans. Returns true on success.
 
     void refreshAddresses();
 

@@ -24,17 +24,25 @@ std::unique_ptr<Hack> g_hack;
 
 std::unique_ptr<Hack> InitializeHackInBackground() {
     try {
-        // Pass the thread-safe status message callback to the Hack constructor.
-        return std::make_unique<Hack>(StatusUI::AddMessage);
+        // Stage 1: Create the Hack object (minimal constructor)
+        auto hack_ptr = std::make_unique<Hack>(StatusUI::AddMessage);
+
+        // Stage 2: Perform the actual initialization (process attach, scans)
+        if (hack_ptr && hack_ptr->Initialize()) {
+            return hack_ptr;
+        } else {
+            // Error messages should have been logged by Hack::Initialize via the callback
+            return nullptr;
+        }
     }
     catch (const std::exception& e) {
-        // KXStatus might have logged API/version errors, this catches errors *within* Hack's constructor
-        StatusUI::AddMessage("ERROR: Exception during Hack initialization: " + std::string(e.what()));
-        throw; // Re-throw for future::get()
+        // Catches exceptions during Hack *constructor* or other unexpected issues
+        StatusUI::AddMessage("ERROR: Exception during background initialization task: " + std::string(e.what()));
+        return nullptr;
     }
     catch (...) {
-        StatusUI::AddMessage("ERROR: Unknown exception during Hack initialization.");
-        throw; // Re-throw for future::get()
+        StatusUI::AddMessage("ERROR: Unknown exception during background initialization task.");
+        return nullptr;
     }
 }
 
@@ -53,7 +61,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             // Specific error (outdated, disabled, API fail) is logged by KXStatus
         }
         else {
-            // Status check succeeded.
             statusCheckOk = true;
             // Success is implicit if no error was logged by KXStatus
         }
@@ -160,8 +167,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 auto status = future_hack.wait_for(std::chrono::milliseconds(0)); // Non-blocking check
                 if (status == std::future_status::ready) {
                     try {
-                        g_hack = future_hack.get(); // Get result or re-throw exception
-                        initializationSuccess = (g_hack != nullptr);
+                        // Get the result from the background task.
+                        // This will be nullptr if InitializeHackInBackground failed.
+                        g_hack = future_hack.get();
+                        initializationSuccess = (g_hack != nullptr); // Check if we got a valid pointer
+
                         if (initializationSuccess) {
                             // Background task succeeded
                             gui = std::make_unique<HackGUI>(*g_hack); // Create GUI now
@@ -169,21 +179,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                             ::SetWindowText(hwnd, WINDOW_TITLE_HIDDEN);
                         }
                         else {
-                            // Should have been caught by exception? Defensive check.
-                            initializationErrorMsg = "Hack initialization returned null pointer.";
-                            StatusUI::AddMessage("ERROR: " + initializationErrorMsg); // Log this specific error
+                            // Hack::Initialize() or InitializeHackInBackground already logged the specific error.
+                            // Set a generic message here if needed, but rely on logs.
+                            if (initializationErrorMsg.empty()) { // Only set if status check didn't already fail
+                                initializationErrorMsg = "Hack initialization failed. See log for details.";
+                            }
                             ::SetWindowText(hwnd, WINDOW_TITLE_ERROR);
                             if (!::IsWindowVisible(hwnd)) ::ShowWindow(hwnd, SW_SHOW);
                         }
                     }
                     catch (const std::exception& e) {
+                        // Catch potential exceptions from future::get() itself
                         initializationSuccess = false;
-                        initializationErrorMsg = e.what(); // Get error message from exception
-                        // Hack constructor should have logged the specific error via callback
+                        initializationErrorMsg = "Exception retrieving initialization result: " + std::string(e.what());
+                        StatusUI::AddMessage("ERROR: " + initializationErrorMsg);
                         ::SetWindowText(hwnd, WINDOW_TITLE_ERROR);
                         if (!::IsWindowVisible(hwnd)) ::ShowWindow(hwnd, SW_SHOW);
                     }
                     catch (...) {
+                        // Catch potential exceptions from future::get() itself
                         initializationSuccess = false;
                         initializationErrorMsg = "An unknown error occurred during initialization.";
                         StatusUI::AddMessage("ERROR: " + initializationErrorMsg); // Log this specific error

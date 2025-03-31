@@ -21,38 +21,17 @@ std::string to_hex_string(uintptr_t address) {
 Hack::Hack(std::function<void(const std::string&)> statusCallback)
     : m_statusCallback(std::move(statusCallback))
 {
-    reportStatus("INFO: Initializing KX Trainer...");
-    try {
-        initializeOffsets();
-        findProcess();
-        performBaseScan();
-        scanForPatterns();
-
-        // Initialize cached bytes (optional, reads initial game state)
-        if (m_fogAddress) m_memoryManager.Read<byte>(m_fogAddress, m_fogByte);
-        if (m_objectClippingAddress) m_memoryManager.Read<byte>(m_objectClippingAddress, m_objectClippingByte);
-        if (m_fullStrafeAddress) m_memoryManager.Read<byte>(m_fullStrafeAddress, m_fullStrafeByte);
-
-        reportStatus("INFO: Initialization successful.");
-    }
-    catch (const HackInitializationError& e) {
-        m_memoryManager.Detach();
-        throw;
-    }
-    catch (const std::exception& e) {
-        reportStatus("ERROR: An unexpected standard error occurred during initialization - " + std::string(e.what()));
-        m_memoryManager.Detach();
-        throw HackInitializationError("Unexpected standard error during initialization.");
-    }
-    catch (...) {
-        reportStatus("ERROR: An unknown error occurred during initialization.");
-        m_memoryManager.Detach();
-        throw HackInitializationError("Unknown error during initialization.");
-    }
+    // Initialize only members that don't require process interaction yet.
+    initializeOffsets();
+    // Actual process attachment and scanning happens in Initialize()
 }
 
 Hack::~Hack() {
     reportStatus("INFO: Shutting down KX Trainer.");
+    // Ensure detachment if Initialize() failed partially or wasn't called
+    if (m_memoryManager.IsAttached()) {
+        m_memoryManager.Detach();
+    }
 }
 
 void Hack::initializeOffsets()
@@ -60,12 +39,60 @@ void Hack::initializeOffsets()
     m_xOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x120 };
     m_yOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x128 };
     m_zOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x124 };
-    m_zHeight1Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x118 }; // Invisibility
-    m_zHeight2Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x114 }; // Clipping
-    m_gravityOffsets = { BYTE1, BYTE2, BYTE3, 0x1FC };         // Fly
+    m_zHeight1Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x118 };
+    m_zHeight2Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x114 };
+    m_gravityOffsets = { BYTE1, BYTE2, BYTE3, 0x1FC };
     m_speedOffsets = { BYTE1, BYTE2, BYTE3, 0x220 };
     m_wallClimbOffsets = { BYTE1, BYTE2, BYTE3, 0x204 };
 }
+
+bool Hack::Initialize() {
+    reportStatus("INFO: Starting KX Trainer initialization...");
+    try {
+        findProcess();
+        performBaseScan();
+        scanForPatterns();
+
+        // Initialize cached bytes by reading initial game state
+        // These reads are less critical, failure here doesn't stop initialization
+        // but might affect initial state reporting in the UI.
+        if (m_fogAddress) {
+            if (!m_memoryManager.Read<byte>(m_fogAddress, m_fogByte)) {
+                reportStatus("WARN: Failed to read initial fog state.");
+            }
+        }
+        if (m_objectClippingAddress) {
+            if (!m_memoryManager.Read<byte>(m_objectClippingAddress, m_objectClippingByte)) {
+                reportStatus("WARN: Failed to read initial object clipping state.");
+            }
+        }
+        if (m_fullStrafeAddress) {
+            if (!m_memoryManager.Read<byte>(m_fullStrafeAddress, m_fullStrafeByte)) {
+                reportStatus("WARN: Failed to read initial full strafe state.");
+            }
+        }
+
+        reportStatus("INFO: Initialization successful.");
+        return true;
+    }
+    catch (const HackInitializationError& e) {
+        // Error already reported by the function that threw it.
+        // Ensure detachment before returning failure.
+        if (m_memoryManager.IsAttached()) m_memoryManager.Detach();
+        return false;
+    }
+    catch (const std::exception& e) {
+        reportStatus("ERROR: An unexpected standard error occurred during initialization - " + std::string(e.what()));
+        if (m_memoryManager.IsAttached()) m_memoryManager.Detach();
+        return false;
+    }
+    catch (...) {
+        reportStatus("ERROR: An unknown error occurred during initialization.");
+        if (m_memoryManager.IsAttached()) m_memoryManager.Detach();
+        return false;
+    }
+}
+
 
 void Hack::findProcess() {
     reportStatus("INFO: Searching for process: " + std::string(GW2_PROCESS_NAME_A));
@@ -142,9 +169,9 @@ void Hack::refreshAddresses() {
     m_xAddr = refreshAddr(m_xOffsets);
     m_yAddr = refreshAddr(m_yOffsets);
     m_zAddr = refreshAddr(m_zOffsets);
-    m_zHeight1Addr = refreshAddr(m_zHeight1Offsets); // Invisibility
-    m_zHeight2Addr = refreshAddr(m_zHeight2Offsets); // Clipping
-    m_gravityAddr = refreshAddr(m_gravityOffsets);   // Fly
+    m_zHeight1Addr = refreshAddr(m_zHeight1Offsets);
+    m_zHeight2Addr = refreshAddr(m_zHeight2Offsets);
+    m_gravityAddr = refreshAddr(m_gravityOffsets);
     m_speedAddr = refreshAddr(m_speedOffsets);
     m_wallClimbAddr = refreshAddr(m_wallClimbOffsets);
 }

@@ -102,6 +102,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d_manager.cpp" />
+    <ClCompile Include="gui_style.cpp" />
     <ClCompile Include="process_memory_manager.cpp" />
     <ClCompile Include="hack_gui.cpp" />
     <ClCompile Include="http_client.cpp" />
@@ -119,6 +120,7 @@
   <ItemGroup>
     <ClInclude Include="constants.h" />
     <ClInclude Include="d3d_manager.h" />
+    <ClInclude Include="gui_style.h" />
     <ClInclude Include="hack_gui.h" />
     <ClInclude Include="http_client.h" />
     <ClInclude Include="hack.h" />

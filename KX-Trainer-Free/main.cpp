@@ -3,6 +3,7 @@
 #include "kx_status.h"
 #include "d3d_manager.h"
 #include "status_ui.h"
+#include "gui_style.h"
 
 #include <windows.h>
 #include <tchar.h>
@@ -110,12 +111,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     io.IniFilename = nullptr; // Disable .ini saving
 
-    ImGui::StyleColorsDark();
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
+    GUIStyle::ApplyCustomStyle();
 
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(D3DManager::GetDevice(), D3DManager::GetDeviceContext());

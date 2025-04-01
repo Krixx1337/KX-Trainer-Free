@@ -50,8 +50,6 @@ const char* HackGUI::GetKeyName(int vk_code) {
     return unknownKey;
 }
 
-#include "constants.h"
-
 HackGUI::HackGUI(Hack& hack) : m_hack(hack), m_rebinding_hotkey_id(HotkeyID::NONE) {
     // Define all available hotkeys and their default properties
     m_hotkeys = {

@@ -50,37 +50,42 @@ const char* HackGUI::GetKeyName(int vk_code) {
     return unknownKey;
 }
 
-HackGUI::HackGUI(Hack& hack) : m_hack(hack) {
-    // Initialize hotkeys (or load from config)
-    m_key_savepos = 0;
-    m_key_loadpos = 0;
-    m_key_invisibility = 0;
-    m_key_wallclimb = 0;
-    m_key_clipping = 0;
-    m_key_object_clipping = 0;
-    m_key_full_strafe = 0;
-    m_key_no_fog = 0;
-    m_key_super_sprint = 0;
-    m_key_sprint = 0;
-    m_key_fly = 0;
+#include "constants.h"
 
-    // TODO: Load saved hotkeys from a config file here
+HackGUI::HackGUI(Hack& hack) : m_hack(hack), m_rebinding_hotkey_id(HotkeyID::NONE) {
+    // Define all available hotkeys and their default properties
+    m_hotkeys = {
+        {HotkeyID::SAVE_POS,             "Save Position",   Constants::Hotkeys::KEY_SAVEPOS,         HotkeyTriggerType::ON_PRESS, [](Hack& h, bool) { h.savePosition(); }},
+        {HotkeyID::LOAD_POS,             "Load Position",   Constants::Hotkeys::KEY_LOADPOS,         HotkeyTriggerType::ON_PRESS, [](Hack& h, bool) { h.loadPosition(); }},
+        {HotkeyID::TOGGLE_INVISIBILITY,  "Invisibility",    Constants::Hotkeys::KEY_INVISIBILITY,    HotkeyTriggerType::ON_PRESS, [](Hack& h, bool) { h.toggleInvisibility(!h.IsInvisibilityEnabled()); }},
+        {HotkeyID::TOGGLE_WALLCLIMB,     "Wall Climb",      Constants::Hotkeys::KEY_WALLCLIMB,       HotkeyTriggerType::ON_PRESS, [](Hack& h, bool) { h.toggleWallClimb(!h.IsWallClimbEnabled()); }},
+        {HotkeyID::TOGGLE_CLIPPING,      "Clipping",        Constants::Hotkeys::KEY_CLIPPING,        HotkeyTriggerType::ON_PRESS, [](Hack& h, bool) { h.toggleClipping(!h.IsClippingEnabled()); }},
+        {HotkeyID::TOGGLE_OBJECT_CLIPPING,"Object Clipping", Constants::Hotkeys::KEY_OBJECT_CLIPPING, HotkeyTriggerType::ON_PRESS, [](Hack& h, bool) { h.toggleObjectClipping(!h.IsObjectClippingEnabled()); }},
+        {HotkeyID::TOGGLE_FULL_STRAFE,   "Full Strafe",     Constants::Hotkeys::KEY_FULL_STRAFE,     HotkeyTriggerType::ON_PRESS, [](Hack& h, bool) { h.toggleFullStrafe(!h.IsFullStrafeEnabled()); }},
+        {HotkeyID::TOGGLE_NO_FOG,        "No Fog",          Constants::Hotkeys::KEY_NO_FOG,          HotkeyTriggerType::ON_PRESS, [](Hack& h, bool) { h.toggleFog(!h.IsFogEnabled()); }},
+        {HotkeyID::HOLD_SUPER_SPRINT,    "Super Sprint",    Constants::Hotkeys::KEY_SUPER_SPRINT,    HotkeyTriggerType::ON_HOLD,  [](Hack& h, bool held) { h.handleSuperSprint(held); }},
+        {HotkeyID::TOGGLE_SPRINT_PREF,   "Sprint",          Constants::Hotkeys::KEY_SPRINT,          HotkeyTriggerType::ON_PRESS, [this](Hack& /*h*/, bool) { this->m_sprintEnabled = !this->m_sprintEnabled; }}, // Toggles the GUI preference flag
+        {HotkeyID::HOLD_FLY,             "Fly",             Constants::Hotkeys::KEY_FLY,             HotkeyTriggerType::ON_HOLD,  [](Hack& h, bool held) { h.handleFly(held); }}
+    };
+
+    // TODO: Load saved currentKeyCode values from a config file here, overwriting the defaults set in HotkeyInfo constructor
 }
 
-// Renders label, key name, and Change button for a hotkey setting
-void HackGUI::CheckAndSetHotkey(int hotkey_index, const char* name, int& key_variable) {
-    ImGui::Text("%s:", name);
+// Renders label, key name, and Change button for a single hotkey configuration
+void HackGUI::RenderHotkeyControl(HotkeyInfo& hotkey) {
+    ImGui::Text("%s:", hotkey.name);
     ImGui::SameLine(150.0f); // Alignment
-    if (m_rebinding_hotkey_index == hotkey_index) {
+
+    if (m_rebinding_hotkey_id == hotkey.id) {
         ImGui::TextDisabled("<Press any key>");
-    }
-    else {
-        ImGui::Text("%s", GetKeyName(key_variable));
+    } else {
+        ImGui::Text("%s", GetKeyName(hotkey.currentKeyCode)); // Use GetKeyName with the current code
         ImGui::SameLine(280.0f); // Alignment
-        std::string button_label = "Change##" + std::string(name); // Unique ID
+
+        // Create a unique ID for the button using the hotkey name
+        std::string button_label = "Change##" + std::string(hotkey.name);
         if (ImGui::Button(button_label.c_str())) {
-            m_rebinding_hotkey_index = hotkey_index;
-            m_rebinding_hotkey_name = name;
+            m_rebinding_hotkey_id = hotkey.id; // Set the ID of the hotkey being rebound
         }
     }
 }
@@ -111,95 +116,81 @@ void HackGUI::RenderAlwaysOnTop() {
     ImGui::Spacing();
 }
 
-// Checks registered hotkeys and calls corresponding Hack methods
+// Checks registered hotkeys and calls corresponding actions
 void HackGUI::HandleHotkeys() {
-    // Toggles (on key press - check bit 0)
-    if (m_key_no_fog != 0 && (GetAsyncKeyState(m_key_no_fog) & 1)) {
-        m_hack.toggleFog(!m_hack.IsFogEnabled());
-    }
-    if (m_key_object_clipping != 0 && (GetAsyncKeyState(m_key_object_clipping) & 1)) {
-        m_hack.toggleObjectClipping(!m_hack.IsObjectClippingEnabled());
-    }
-    if (m_key_full_strafe != 0 && (GetAsyncKeyState(m_key_full_strafe) & 1)) {
-        m_hack.toggleFullStrafe(!m_hack.IsFullStrafeEnabled());
-    }
-    if (m_key_invisibility != 0 && (GetAsyncKeyState(m_key_invisibility) & 1)) {
-        m_hack.toggleInvisibility(!m_hack.IsInvisibilityEnabled());
-    }
-    if (m_key_wallclimb != 0 && (GetAsyncKeyState(m_key_wallclimb) & 1)) {
-        m_hack.toggleWallClimb(!m_hack.IsWallClimbEnabled());
-    }
-    if (m_key_clipping != 0 && (GetAsyncKeyState(m_key_clipping) & 1)) {
-        m_hack.toggleClipping(!m_hack.IsClippingEnabled());
-    }
-    // Sprint Preference Toggle
-    if (m_key_sprint != 0 && (GetAsyncKeyState(m_key_sprint) & 1)) {
-        m_sprintEnabled = !m_sprintEnabled;
+    // Don't process hotkeys if currently rebinding one
+    if (m_rebinding_hotkey_id != HotkeyID::NONE) {
+        return;
     }
 
-    // Holds (while key is down - check high bit 0x8000)
-    bool superSprintKeyPressed = (m_key_super_sprint != 0 && (GetAsyncKeyState(m_key_super_sprint) & 0x8000) != 0);
-    m_hack.handleSuperSprint(superSprintKeyPressed);
+    for (const auto& hotkey : m_hotkeys) {
+        if (hotkey.currentKeyCode == 0 || !hotkey.action) { // Skip unbound or unassigned actions
+            continue;
+        }
 
-    bool flyKeyPressed = (m_key_fly != 0 && (GetAsyncKeyState(m_key_fly) & 0x8000) != 0);
-    m_hack.handleFly(flyKeyPressed);
+        SHORT keyState = GetAsyncKeyState(hotkey.currentKeyCode);
 
-    // Actions (on key press - check bit 0)
-    if (m_key_savepos != 0 && (GetAsyncKeyState(m_key_savepos) & 1)) { m_hack.savePosition(); }
-    if (m_key_loadpos != 0 && (GetAsyncKeyState(m_key_loadpos) & 1)) { m_hack.loadPosition(); }
+        switch (hotkey.triggerType) {
+            case HotkeyTriggerType::ON_PRESS:
+                // Check the least significant bit (1 means pressed *since the last call*)
+                if (keyState & 1) {
+                    hotkey.action(m_hack, true); // Pass true for pressed state
+                }
+                break;
+
+            case HotkeyTriggerType::ON_HOLD:
+                // Check the most significant bit (1 means currently held down)
+                bool isHeld = (keyState & 0x8000) != 0;
+                hotkey.action(m_hack, isHeld); // Pass the current hold state
+                break;
+        }
+    }
 }
 
 // Handles the logic when the user is actively rebinding a hotkey
 void HackGUI::HandleHotkeyRebinding() {
-    if (m_rebinding_hotkey_index == -1) return;
+    if (m_rebinding_hotkey_id == HotkeyID::NONE) return;
 
-    int captured_vk = -1;
+    int captured_vk = -1; // -1 means no key captured yet
 
     // Check special keys first
-    if (GetAsyncKeyState(VK_ESCAPE) & 1) { captured_vk = VK_ESCAPE; } // Cancel
-    else if ((GetAsyncKeyState(VK_DELETE) & 1) || (GetAsyncKeyState(VK_BACK) & 1)) { captured_vk = 0; } // Unbind
-    else {
-        // Iterate through common key codes
+    if (GetAsyncKeyState(VK_ESCAPE) & 1) {
+        captured_vk = VK_ESCAPE; // Special value to indicate cancellation
+    } else if ((GetAsyncKeyState(VK_DELETE) & 1) || (GetAsyncKeyState(VK_BACK) & 1)) {
+        captured_vk = 0; // 0 means unbind
+    } else {
+        // Iterate through common key codes to find the first pressed key
         for (int vk = VK_MBUTTON; vk < VK_OEM_CLEAR; ++vk) {
-            // Skip keys that interfere or are unsuitable
+            // Skip keys that interfere, are unsuitable, or handled above
             if (vk == VK_ESCAPE || vk == VK_DELETE || vk == VK_BACK ||
-                vk == VK_LBUTTON || vk == VK_RBUTTON || // Avoid UI clicks
-                vk == VK_SHIFT || vk == VK_CONTROL || vk == VK_MENU || // Prefer L/R versions
-                vk == VK_CAPITAL || vk == VK_NUMLOCK || vk == VK_SCROLL) // State keys
+                vk == VK_LBUTTON || vk == VK_RBUTTON || // Avoid UI clicks binding easily
+                vk == VK_SHIFT || vk == VK_CONTROL || vk == VK_MENU || // Prefer specific L/R versions if needed, though GetKeyName handles these
+                vk == VK_CAPITAL || vk == VK_NUMLOCK || vk == VK_SCROLL) // State keys are poor choices
             {
                 continue;
             }
-            if (GetAsyncKeyState(vk) & 1) { // Key pressed
+            // Check if key was pressed *since the last call*
+            if (GetAsyncKeyState(vk) & 1) {
                 captured_vk = vk;
-                break;
+                break; // Found the first pressed key
             }
         }
     }
 
-    if (captured_vk != -1) { // Key captured or action taken
-        if (captured_vk != VK_ESCAPE) { // Don't assign Esc
-            int* key_to_set = nullptr;
-            switch (m_rebinding_hotkey_index) {
-            case 0: key_to_set = &m_key_savepos; break;
-            case 1: key_to_set = &m_key_loadpos; break;
-            case 2: key_to_set = &m_key_invisibility; break;
-            case 3: key_to_set = &m_key_wallclimb; break;
-            case 4: key_to_set = &m_key_clipping; break;
-            case 5: key_to_set = &m_key_object_clipping; break;
-            case 6: key_to_set = &m_key_full_strafe; break;
-            case 7: key_to_set = &m_key_no_fog; break;
-            case 8: key_to_set = &m_key_super_sprint; break;
-            case 9: key_to_set = &m_key_sprint; break;
-            case 10: key_to_set = &m_key_fly; break;
-            }
-            if (key_to_set) {
-                *key_to_set = captured_vk;
-                // TODO: Save updated hotkeys to config file
+    // If a key was captured or an action key (Esc/Del/Back) was pressed
+    if (captured_vk != -1) {
+        if (captured_vk != VK_ESCAPE) { // If not cancelling
+            // Find the hotkey being rebound in the vector
+            for (auto& hotkey : m_hotkeys) {
+                if (hotkey.id == m_rebinding_hotkey_id) {
+                    hotkey.currentKeyCode = captured_vk; // Assign the captured key (or 0 for unbind)
+                    // TODO: Save updated hotkeys to config file here
+                    break; // Found and updated
+                }
             }
         }
-        // Reset rebinding state
-        m_rebinding_hotkey_index = -1;
-        m_rebinding_hotkey_name = nullptr;
+        // Reset rebinding state regardless of whether we assigned or cancelled
+        m_rebinding_hotkey_id = HotkeyID::NONE;
     }
 }
 
@@ -247,61 +238,51 @@ void HackGUI::RenderActionsSection() {
 // Renders the collapsible section for configuring hotkeys
 void HackGUI::RenderHotkeysSection() {
     if (ImGui::CollapsingHeader("Hotkeys")) {
-        if (m_rebinding_hotkey_index != -1) {
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Rebinding '%s'. Press a key (ESC to cancel, DEL/BKSP to clear)...", m_rebinding_hotkey_name);
+        // Display rebinding prompt if active
+        if (m_rebinding_hotkey_id != HotkeyID::NONE) {
+            const char* rebinding_name = "Unknown"; // Fallback
+            for(const auto& hk : m_hotkeys) {
+                if (hk.id == m_rebinding_hotkey_id) {
+                    rebinding_name = hk.name;
+                    break;
+                }
+            }
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Rebinding '%s'. Press a key (ESC to cancel, DEL/BKSP to clear)...", rebinding_name);
             ImGui::Separator();
         }
 
         // Dim controls while rebinding
-        bool flags_pushed = false;
-        if (m_rebinding_hotkey_index != -1) {
+        bool disable_controls = (m_rebinding_hotkey_id != HotkeyID::NONE);
+        if (disable_controls) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-            flags_pushed = true;
         }
 
-        // Hotkey assignment widgets
-        CheckAndSetHotkey(0, "Save Position", m_key_savepos);
-        CheckAndSetHotkey(1, "Load Position", m_key_loadpos);
-        ImGui::Separator();
-        CheckAndSetHotkey(7, "No Fog", m_key_no_fog);
-        CheckAndSetHotkey(5, "Object Clipping", m_key_object_clipping);
-        CheckAndSetHotkey(6, "Full Strafe", m_key_full_strafe);
-        CheckAndSetHotkey(2, "Invisibility", m_key_invisibility);
-        CheckAndSetHotkey(3, "Wall Climb", m_key_wallclimb);
-        CheckAndSetHotkey(4, "Clipping", m_key_clipping);
-        CheckAndSetHotkey(9, "Sprint", m_key_sprint); // Hotkey for the preference
-        ImGui::Separator();
-        CheckAndSetHotkey(8, "Super Sprint", m_key_super_sprint); // Hold
-        CheckAndSetHotkey(10, "Fly", m_key_fly);                   // Hold
+        // Iterate through hotkeys and render controls
+        for (auto& hotkey : m_hotkeys) {
+            RenderHotkeyControl(hotkey);
+        }
 
-        if (flags_pushed) {
+
+        if (disable_controls) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
         ImGui::Separator();
         ImGui::Spacing();
 
+        // Buttons for defaults and unbinding
         if (ImGui::Button("Apply Recommended Defaults")) {
-            m_key_savepos = Constants::Hotkeys::KEY_SAVEPOS;
-            m_key_loadpos = Constants::Hotkeys::KEY_LOADPOS;
-            m_key_invisibility = Constants::Hotkeys::KEY_INVISIBILITY;
-            m_key_wallclimb = Constants::Hotkeys::KEY_WALLCLIMB;
-            m_key_clipping = Constants::Hotkeys::KEY_CLIPPING;
-            m_key_object_clipping = Constants::Hotkeys::KEY_OBJECT_CLIPPING;
-            m_key_full_strafe = Constants::Hotkeys::KEY_FULL_STRAFE;
-            m_key_no_fog = Constants::Hotkeys::KEY_NO_FOG;
-            m_key_super_sprint = Constants::Hotkeys::KEY_SUPER_SPRINT;
-            m_key_sprint = Constants::Hotkeys::KEY_SPRINT;
-            m_key_fly = Constants::Hotkeys::KEY_FLY;
+            for (auto& hotkey : m_hotkeys) {
+                hotkey.currentKeyCode = hotkey.defaultKeyCode;
+            }
             // TODO: Save updated hotkeys to config file
         }
         ImGui::SameLine();
         if (ImGui::Button("Unbind All")) {
-            m_key_savepos = 0; m_key_loadpos = 0; m_key_invisibility = 0;
-            m_key_wallclimb = 0; m_key_clipping = 0; m_key_object_clipping = 0;
-            m_key_full_strafe = 0; m_key_no_fog = 0; m_key_super_sprint = 0;
-            m_key_sprint = 0; m_key_fly = 0;
+            for (auto& hotkey : m_hotkeys) {
+                hotkey.currentKeyCode = 0; // 0 represents unbound
+            }
             // TODO: Save updated hotkeys to config file
         }
         ImGui::Spacing();
@@ -367,7 +348,7 @@ bool HackGUI::renderUI()
 
     RenderAlwaysOnTop();
 
-    m_hack.refreshAddresses(); // Ensure pointers are valid before reading/writingw
+    m_hack.refreshAddresses(); // Ensure pointers are valid before reading/writing
     HandleHotkeys();           // Process registered hotkeys
     HandleHotkeyRebinding();   // Handle input if rebinding
 

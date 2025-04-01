@@ -2,8 +2,10 @@
 
 #include <string>
 #include <vector>
+#include <functional>
+#include "hotkey_definitions.h"
 
-class Hack; // Forward declaration
+class Hack;
 
 class HackGUI {
 public:
@@ -16,22 +18,9 @@ private:
     // Only GUI-specific state or user preferences here
     bool m_sprintEnabled = false; // User's preference toggle for sprint mode
 
-    // Hotkeys
-    int m_key_savepos;
-    int m_key_loadpos;
-    int m_key_invisibility;
-    int m_key_wallclimb;
-    int m_key_clipping;
-    int m_key_object_clipping;
-    int m_key_full_strafe;
-    int m_key_no_fog;
-    int m_key_super_sprint;
-    int m_key_sprint; // Hotkey for the preference toggle (m_sprintEnabled)
-    int m_key_fly;
-
-    // Hotkey Rebinding State
-    int m_rebinding_hotkey_index = -1;
-    const char* m_rebinding_hotkey_name = nullptr;
+    // Refactored Hotkey Management
+    std::vector<HotkeyInfo> m_hotkeys;
+    HotkeyID m_rebinding_hotkey_id = HotkeyID::NONE; // ID of the hotkey currently being rebound
 
     // UI Rendering Methods
     void RenderAlwaysOnTop();
@@ -47,5 +36,5 @@ private:
 
     // Helpers
     const char* GetKeyName(int vk_code);
-    void CheckAndSetHotkey(int hotkey_index, const char* name, int& key_variable);
+    void RenderHotkeyControl(HotkeyInfo& hotkey);
 };

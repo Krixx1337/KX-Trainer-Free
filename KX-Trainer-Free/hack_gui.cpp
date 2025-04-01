@@ -8,6 +8,7 @@
 #include "imgui/imgui_internal.h"
 
 #include <windows.h>
+#include <shellapi.h>
 #include <string>
 #include <vector>
 #include <mutex>
@@ -293,10 +294,29 @@ void HackGUI::RenderLogSection() {
 void HackGUI::RenderInfoSection() {
     if (ImGui::CollapsingHeader("Info")) {
         ImGui::Text("KX Trainer by Krixx");
-        ImGui::Text("GitHub: https://github.com/Krixx1337/KX-Trainer-Free");
-        ImGui::Separator();
         ImGui::Text("Consider the paid version at kxtools.xyz!");
-        ImGui::Spacing();
+        ImGui::Separator();
+
+        // GitHub Link
+        ImGui::Text("GitHub:");
+        ImGui::SameLine();
+        if (ImGui::Button("Repository")) {
+            ShellExecuteA(NULL, "open", "https://github.com/Krixx1337/KX-Trainer-Free", NULL, NULL, SW_SHOWNORMAL);
+        }
+
+        // kxtools.xyz Link
+        ImGui::Text("Website:");
+        ImGui::SameLine();
+        if (ImGui::Button("kxtools.xyz")) {
+             ShellExecuteA(NULL, "open", "https://kxtools.xyz", NULL, NULL, SW_SHOWNORMAL);
+        }
+
+        // Discord Link
+        ImGui::Text("Discord:");
+        ImGui::SameLine();
+        if (ImGui::Button("Join Server")) {
+             ShellExecuteA(NULL, "open", "https://discord.gg/z92rnB4kHm", NULL, NULL, SW_SHOWNORMAL);
+        }
     }
 }
 

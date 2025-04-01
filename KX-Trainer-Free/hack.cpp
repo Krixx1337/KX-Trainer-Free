@@ -333,7 +333,7 @@ void Hack::toggleInvisibility(bool enable) {
     else {
         // Nudge Y position slightly on disable - potentially helps refresh visibility
         if (m_yAddr != 0 && m_memoryManager.Read<float>(m_yAddr, m_yValue)) {
-            m_yValue += 0.01f;
+            m_yValue += 3.f;
             m_memoryManager.Write<float>(m_yAddr, m_yValue);
         }
         m_invisibilityValue = INVISIBILITY_OFF;

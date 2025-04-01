@@ -77,7 +77,17 @@ void HackGUI::RenderHotkeyControl(HotkeyInfo& hotkey) {
     if (m_rebinding_hotkey_id == hotkey.id) {
         ImGui::TextDisabled("<Press any key>");
     } else {
-        ImGui::Text("%s", GetKeyName(hotkey.currentKeyCode)); // Use GetKeyName with the current code
+        // Display key name, adding '*' for hold actions
+        const char* baseKeyName = GetKeyName(hotkey.currentKeyCode);
+        if (hotkey.triggerType == HotkeyTriggerType::ON_HOLD) {
+            std::string keyNameWithIndicator = std::string(baseKeyName) + "*";
+            ImGui::Text("%s", keyNameWithIndicator.c_str());
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Hold");
+            }
+        } else {
+            ImGui::Text("%s", baseKeyName);
+        }
         ImGui::SameLine(280.0f); // Alignment
 
         // Create a unique ID for the button using the hotkey name

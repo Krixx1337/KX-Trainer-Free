@@ -35,6 +35,5 @@ private:
     void HandleHotkeyRebinding();
 
     // Helpers
-    const char* GetKeyName(int vk_code);
     void RenderHotkeyControl(HotkeyInfo& hotkey);
 };

@@ -124,7 +124,7 @@ void Hack::performBaseScan() {
                 // Sanity check: Ensure the read pointer value is above the minimum threshold.
                 if (pointerValue > BASE_ADDRESS_MIN_VALUE) {
                     m_baseAddressLocation = potentialPtrLocation; // Store the valid location
-                    reportStatus("SUCCESS: Base address location validated: " + to_hex_string(m_baseAddressLocation) + " (Value: " + to_hex_string(pointerValue) + ")");
+                    reportStatus("INFO: Base address location validated: " + to_hex_string(m_baseAddressLocation) + " (Value: " + to_hex_string(pointerValue) + ")");
                     locationFound = true; // Exit loop after successful validation
                 }
                 else {

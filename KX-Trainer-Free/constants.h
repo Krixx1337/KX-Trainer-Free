@@ -16,8 +16,12 @@ namespace Constants {
 
     // Scan Configuration
     namespace Scan {
-        constexpr unsigned int BASE_ADDRESS_MIN_VALUE = 10000;
-        constexpr uintptr_t BASE_ADDRESS_OFFSET = 0x8;
+        // Minimum expected value for a valid user-space pointer in x64. Used as a sanity check.
+        constexpr uintptr_t BASE_ADDRESS_MIN_VALUE = 0x10000;
+
+        // Offset relative to the pattern match address to find the location of the base pointer.
+        constexpr uintptr_t POINTER_LOCATION_OFFSET = 0x8;
+
         constexpr int MAX_BASE_SCAN_ATTEMPTS = 15;
         constexpr int BASE_SCAN_RETRY_DELAY_MS = 1000;
     }

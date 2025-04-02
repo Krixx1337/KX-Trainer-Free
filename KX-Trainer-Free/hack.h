@@ -52,7 +52,7 @@ private:
     ProcessMemoryManager m_memoryManager;
     std::function<void(const std::string&)> m_statusCallback;
 
-    uintptr_t m_baseAddress = 0;
+    uintptr_t m_baseAddressLocation = 0;
     uintptr_t m_fogAddress = 0;
     uintptr_t m_objectClippingAddress = 0;
     uintptr_t m_fullStrafeAddress = 0;

@@ -105,40 +105,51 @@ void Hack::findProcess() {
 void Hack::performBaseScan() {
     reportStatus("INFO: Starting base address scan...");
     int scans = 0;
-    unsigned int baseValue = 0;
-    bool baseFound = false;
+    bool locationFound = false;
+    m_baseAddressLocation = 0; // Ensure reset before scan
 
-    while (scans < MAX_BASE_SCAN_ATTEMPTS) {
+    while (scans < MAX_BASE_SCAN_ATTEMPTS && !locationFound) {
         scans++;
-        reportStatus("INFO: Scanning for Base Address... (Attempt " + std::to_string(scans) + "/" + std::to_string(MAX_BASE_SCAN_ATTEMPTS) + ")");
+        reportStatus("INFO: Scanning for base address location... (Attempt " + std::to_string(scans) + "/" + std::to_string(MAX_BASE_SCAN_ATTEMPTS) + ")");
 
-        uintptr_t potentialBaseAddress = m_memoryManager.ScanPatternModule(GW2_PROCESS_NAME_W, BASE_SCAN_PATTERN, BASE_SCAN_MASK);
+        uintptr_t patternMatchAddress = m_memoryManager.ScanPatternModule(GW2_PROCESS_NAME_W, BASE_SCAN_PATTERN, BASE_SCAN_MASK);
 
-        if (potentialBaseAddress != 0) {
-            potentialBaseAddress -= BASE_ADDRESS_OFFSET; // Adjust address relative to pattern start
+        if (patternMatchAddress != 0) {
+            // Calculate the address where the base pointer value is expected to be stored.
+            uintptr_t potentialPtrLocation = patternMatchAddress - POINTER_LOCATION_OFFSET;
 
-            if (m_memoryManager.Read<unsigned int>(potentialBaseAddress, baseValue)) {
-                if (baseValue > BASE_ADDRESS_MIN_VALUE) { // Sanity check the value at the address
-                    m_baseAddress = potentialBaseAddress;
-                    reportStatus("INFO: Base address validated: " + to_hex_string(m_baseAddress));
-                    baseFound = true;
-                    return;
+            uintptr_t pointerValue = 0;
+            // Attempt to read the 8-byte pointer value from the calculated location.
+            if (m_memoryManager.Read<uintptr_t>(potentialPtrLocation, pointerValue)) {
+                // Sanity check: Ensure the read pointer value is above the minimum threshold.
+                if (pointerValue > BASE_ADDRESS_MIN_VALUE) {
+                    m_baseAddressLocation = potentialPtrLocation; // Store the valid location
+                    reportStatus("SUCCESS: Base address location validated: " + to_hex_string(m_baseAddressLocation) + " (Value: " + to_hex_string(pointerValue) + ")");
+                    locationFound = true; // Exit loop after successful validation
                 }
                 else {
-                    std::ostringstream oss_val; oss_val << "0x" << std::hex << baseValue;
-                    reportStatus("WARN: Base address found, but value (" + oss_val.str() + ") is too low. Retrying scan...");
+                    // Value read is 0 or too low, likely invalid or not yet initialized by the game.
+                    reportStatus("WARN: Pointer location found (" + to_hex_string(potentialPtrLocation) + "), but value (" + to_hex_string(pointerValue) + ") is below minimum threshold. Retrying scan...");
                 }
             }
             else {
-                reportStatus("WARN: Base address found (" + to_hex_string(potentialBaseAddress) + "), but failed to read validation value. Retrying scan...");
+                // Failed to read memory at the location derived from the pattern.
+                reportStatus("WARN: Found potential pointer location (" + to_hex_string(potentialPtrLocation) + "), but failed to read the 8-byte value. Retrying scan...");
             }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(BASE_SCAN_RETRY_DELAY_MS));
-    }
+        else {
+            reportStatus("INFO: Pattern not found in attempt " + std::to_string(scans));
+        }
 
-    if (!baseFound) {
-        std::string errorMsg = "Failed to find or validate base address after maximum attempts.";
+        if (!locationFound) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(BASE_SCAN_RETRY_DELAY_MS));
+        }
+    } // End while loop
+
+    if (!locationFound) {
+        std::string errorMsg = "Failed to find or validate base address location after maximum attempts.";
         reportStatus("ERROR: " + errorMsg);
+        m_baseAddressLocation = 0; // Ensure state reflects failure
         throw HackInitializationError(errorMsg);
     }
 }
@@ -164,7 +175,7 @@ void Hack::scanForPatterns()
 }
 
 void Hack::refreshAddresses() {
-    if (!m_memoryManager.IsAttached() || m_baseAddress == 0) return;
+    if (!m_memoryManager.IsAttached() || m_baseAddressLocation == 0) return;
 
     m_xAddr = refreshAddr(m_xOffsets);
     m_yAddr = refreshAddr(m_yOffsets);
@@ -192,7 +203,7 @@ void Hack::writeXYZ(float xValue, float yValue, float zValue)
 }
 
 uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
-    return m_memoryManager.ResolvePointerChain(m_baseAddress, offsets);
+    return m_memoryManager.ResolvePointerChain(m_baseAddressLocation, offsets);
 }
 
 void Hack::reportStatus(const std::string& message) {

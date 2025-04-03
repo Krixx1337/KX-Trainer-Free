@@ -101,6 +101,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="d3d_manager.cpp" />
     <ClCompile Include="gui_style.cpp" />
     <ClCompile Include="key_utils.cpp" />
@@ -116,9 +117,11 @@
     <ClCompile Include="kx_status.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="hack.cpp" />
+    <ClCompile Include="StatusUILogger.cpp" />
     <ClCompile Include="status_ui.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Application.h" />
     <ClInclude Include="constants.h" />
     <ClInclude Include="d3d_manager.h" />
     <ClInclude Include="gui_style.h" />
@@ -126,6 +129,7 @@
     <ClInclude Include="hotkey_definitions.h" />
     <ClInclude Include="http_client.h" />
     <ClInclude Include="hack.h" />
+    <ClInclude Include="ILogger.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_impl_dx11.h" />
@@ -139,6 +143,7 @@
     <ClInclude Include="nlohmann\json.hpp" />
     <ClInclude Include="process_memory_manager.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="StatusUILogger.h" />
     <ClInclude Include="status_ui.h" />
   </ItemGroup>
   <ItemGroup>

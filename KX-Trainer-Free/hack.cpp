@@ -39,9 +39,9 @@ void Hack::initializeOffsets()
     m_xOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x120 };
     m_yOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x128 };
     m_zOffsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x124 };
-    m_zHeight1Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x118 };
-    m_zHeight2Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x114 };
-    m_gravityOffsets = { BYTE1, BYTE2, BYTE3, 0x1FC };
+    m_zHeight1Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x118 }; // Invisibility
+    m_zHeight2Offsets = { BYTE1, BYTE2, BYTE3, BYTE4, 0x114 }; // Clipping
+    m_gravityOffsets = { BYTE1, BYTE2, BYTE3, 0x1FC };         // Fly
     m_speedOffsets = { BYTE1, BYTE2, BYTE3, 0x220 };
     m_wallClimbOffsets = { BYTE1, BYTE2, BYTE3, 0x204 };
 }
@@ -49,26 +49,36 @@ void Hack::initializeOffsets()
 bool Hack::Initialize() {
     reportStatus("INFO: Starting KX Trainer initialization...");
     try {
-        findProcess();
-        performBaseScan();
-        scanForPatterns();
+        findProcess();        // Attach to the game process
+        performBaseScan();    // Find the base pointer location
+        scanForPatterns();    // Find addresses for specific features
 
         // Initialize cached bytes by reading initial game state
         // These reads are less critical, failure here doesn't stop initialization
         // but might affect initial state reporting in the UI.
+        reportStatus("INFO: Reading initial feature states...");
         if (m_fogAddress) {
             if (!m_memoryManager.Read<byte>(m_fogAddress, m_fogByte)) {
-                reportStatus("WARN: Failed to read initial fog state.");
+                reportStatus("WARN: Failed to read initial fog state byte at " + to_hex_string(m_fogAddress));
+            }
+            else {
+                reportStatus("DEBUG: Initial Fog byte read: " + to_hex_string(m_fogByte));
             }
         }
         if (m_objectClippingAddress) {
             if (!m_memoryManager.Read<byte>(m_objectClippingAddress, m_objectClippingByte)) {
-                reportStatus("WARN: Failed to read initial object clipping state.");
+                reportStatus("WARN: Failed to read initial object clipping state byte at " + to_hex_string(m_objectClippingAddress));
+            }
+            else {
+                reportStatus("DEBUG: Initial Object Clipping byte read: " + to_hex_string(m_objectClippingByte));
             }
         }
         if (m_fullStrafeAddress) {
             if (!m_memoryManager.Read<byte>(m_fullStrafeAddress, m_fullStrafeByte)) {
-                reportStatus("WARN: Failed to read initial full strafe state.");
+                reportStatus("WARN: Failed to read initial full strafe state byte at " + to_hex_string(m_fullStrafeAddress));
+            }
+            else {
+                reportStatus("DEBUG: Initial Full Strafe byte read: " + to_hex_string(m_fullStrafeByte));
             }
         }
 
@@ -97,13 +107,22 @@ bool Hack::Initialize() {
 void Hack::findProcess() {
     reportStatus("INFO: Searching for process: " + std::string(GW2_PROCESS_NAME_A));
     if (!m_memoryManager.Attach(GW2_PROCESS_NAME_W)) {
-        throw HackInitializationError("Failed to attach to process '" + std::string(GW2_PROCESS_NAME_A) + "'.");
+        std::string errorMsg;
+        // Check if PID is 0 (process not found) vs other attach errors (permissions?)
+        if (m_memoryManager.GetProcessId() == 0) {
+            errorMsg = "Failed to find process '" + std::string(GW2_PROCESS_NAME_A) + "'. Is the game running?";
+        }
+        else {
+            errorMsg = "Failed to attach to process '" + std::string(GW2_PROCESS_NAME_A) + "' (PID: " + std::to_string(m_memoryManager.GetProcessId()) + "). Ensure trainer is run as Administrator and check anti-virus/anti-cheat interference.";
+        }
+        reportStatus("ERROR: " + errorMsg); // Log the specific error
+        throw HackInitializationError(errorMsg); // Throw specific error
     }
-    reportStatus("INFO: Process handle obtained successfully.");
+    reportStatus("INFO: Successfully attached to process (PID: " + std::to_string(m_memoryManager.GetProcessId()) + ").");
 }
 
 void Hack::performBaseScan() {
-    reportStatus("INFO: Starting base address scan...");
+    reportStatus("INFO: Starting base address location scan...");
     int scans = 0;
     bool locationFound = false;
     m_baseAddressLocation = 0; // Ensure reset before scan
@@ -115,12 +134,15 @@ void Hack::performBaseScan() {
         uintptr_t patternMatchAddress = m_memoryManager.ScanPatternModule(GW2_PROCESS_NAME_W, BASE_SCAN_PATTERN, BASE_SCAN_MASK);
 
         if (patternMatchAddress != 0) {
+            reportStatus("DEBUG: Base pattern matched at address: " + to_hex_string(patternMatchAddress));
             // Calculate the address where the base pointer value is expected to be stored.
             uintptr_t potentialPtrLocation = patternMatchAddress - POINTER_LOCATION_OFFSET;
+            reportStatus("DEBUG: Potential base pointer location: " + to_hex_string(potentialPtrLocation));
 
             uintptr_t pointerValue = 0;
             // Attempt to read the 8-byte pointer value from the calculated location.
             if (m_memoryManager.Read<uintptr_t>(potentialPtrLocation, pointerValue)) {
+                reportStatus("DEBUG: Read pointer value: " + to_hex_string(pointerValue));
                 // Sanity check: Ensure the read pointer value is above the minimum threshold.
                 if (pointerValue > BASE_ADDRESS_MIN_VALUE) {
                     m_baseAddressLocation = potentialPtrLocation; // Store the valid location
@@ -129,7 +151,7 @@ void Hack::performBaseScan() {
                 }
                 else {
                     // Value read is 0 or too low, likely invalid or not yet initialized by the game.
-                    reportStatus("WARN: Pointer location found (" + to_hex_string(potentialPtrLocation) + "), but value (" + to_hex_string(pointerValue) + ") is below minimum threshold. Retrying scan...");
+                    reportStatus("WARN: Pointer location found (" + to_hex_string(potentialPtrLocation) + "), but value (" + to_hex_string(pointerValue) + ") is too low or zero. Game might be loading. Retrying scan...");
                 }
             }
             else {
@@ -138,20 +160,21 @@ void Hack::performBaseScan() {
             }
         }
         else {
-            reportStatus("INFO: Pattern not found in attempt " + std::to_string(scans));
+            reportStatus("DEBUG: Base pattern not found in attempt " + std::to_string(scans));
         }
 
-        if (!locationFound) {
+        if (!locationFound && scans < MAX_BASE_SCAN_ATTEMPTS) {
             std::this_thread::sleep_for(std::chrono::milliseconds(BASE_SCAN_RETRY_DELAY_MS));
         }
     } // End while loop
 
     if (!locationFound) {
-        std::string errorMsg = "Failed to find or validate base address location after maximum attempts.";
+        std::string errorMsg = "Failed to find or validate base address location after " + std::to_string(MAX_BASE_SCAN_ATTEMPTS) + " attempts. Trainer might be incompatible with the current game version or game hasn't fully loaded.";
         reportStatus("ERROR: " + errorMsg);
         m_baseAddressLocation = 0; // Ensure state reflects failure
         throw HackInitializationError(errorMsg);
     }
+    // Success already logged inside the loop
 }
 
 void Hack::scanForPatterns()
@@ -159,50 +182,94 @@ void Hack::scanForPatterns()
     reportStatus("INFO: Scanning for feature patterns...");
     std::string errorMsg;
 
+    // Fog Scan
+    reportStatus("INFO: Scanning for Fog pattern...");
     m_fogAddress = m_memoryManager.ScanPatternModule(GW2_PROCESS_NAME_W, FOG_PATTERN, FOG_MASK);
-    if (m_fogAddress == 0) { errorMsg = "Failed to find Fog pattern."; reportStatus("ERROR: " + errorMsg); throw HackInitializationError(errorMsg); }
+    if (m_fogAddress == 0) { errorMsg = "Failed to find Fog pattern. Trainer might be incompatible with current game version."; reportStatus("ERROR: " + errorMsg); throw HackInitializationError(errorMsg); }
+    reportStatus("INFO: Fog pattern found at: " + to_hex_string(m_fogAddress));
     m_fogAddress += 0x3; // Apply specific offset for the patch byte relative to pattern start
+    reportStatus("INFO: Fog patch address set to: " + to_hex_string(m_fogAddress));
 
+    // Object Clipping Scan
+    reportStatus("INFO: Scanning for Object Clipping pattern...");
     m_objectClippingAddress = m_memoryManager.ScanPatternModule(GW2_PROCESS_NAME_W, OBJECT_CLIPPING_PATTERN, OBJECT_CLIPPING_MASK);
-    if (m_objectClippingAddress == 0) { errorMsg = "Failed to find Object Clipping pattern."; reportStatus("ERROR: " + errorMsg); throw HackInitializationError(errorMsg); }
-    // No offset needed for object clipping based on constants.h
+    if (m_objectClippingAddress == 0) { errorMsg = "Failed to find Object Clipping pattern. Trainer might be incompatible with current game version."; reportStatus("ERROR: " + errorMsg); throw HackInitializationError(errorMsg); }
+    reportStatus("INFO: Object Clipping pattern found at: " + to_hex_string(m_objectClippingAddress));
+    // No offset needed based on constants.h, address is the patch address
+    reportStatus("INFO: Object Clipping patch address set to: " + to_hex_string(m_objectClippingAddress));
 
+    // Full Strafe Scan
+    reportStatus("INFO: Scanning for Full Strafe pattern...");
     m_fullStrafeAddress = m_memoryManager.ScanPatternModule(GW2_PROCESS_NAME_W, FULL_STRAFE_PATTERN, FULL_STRAFE_MASK);
-    if (m_fullStrafeAddress == 0) { errorMsg = "Failed to find Full Strafe pattern."; reportStatus("ERROR: " + errorMsg); throw HackInitializationError(errorMsg); }
+    if (m_fullStrafeAddress == 0) { errorMsg = "Failed to find Full Strafe pattern. Trainer might be incompatible with current game version."; reportStatus("ERROR: " + errorMsg); throw HackInitializationError(errorMsg); }
+    reportStatus("INFO: Full Strafe pattern found at: " + to_hex_string(m_fullStrafeAddress));
     m_fullStrafeAddress += 0x2; // Apply specific offset for the patch byte relative to pattern start
+    reportStatus("INFO: Full Strafe patch address set to: " + to_hex_string(m_fullStrafeAddress));
 
-    reportStatus("INFO: Feature patterns found successfully.");
+    reportStatus("INFO: All required feature patterns found successfully.");
 }
 
 void Hack::refreshAddresses() {
     if (!m_memoryManager.IsAttached() || m_baseAddressLocation == 0) return;
 
+    uintptr_t oldXAddr = m_xAddr; // Store previous address to detect change/invalidation
+
     m_xAddr = refreshAddr(m_xOffsets);
     m_yAddr = refreshAddr(m_yOffsets);
     m_zAddr = refreshAddr(m_zOffsets);
-    m_zHeight1Addr = refreshAddr(m_zHeight1Offsets);
-    m_zHeight2Addr = refreshAddr(m_zHeight2Offsets);
-    m_gravityAddr = refreshAddr(m_gravityOffsets);
+    m_zHeight1Addr = refreshAddr(m_zHeight1Offsets); // Invisibility
+    m_zHeight2Addr = refreshAddr(m_zHeight2Offsets); // Clipping
+    m_gravityAddr = refreshAddr(m_gravityOffsets);   // Fly
     m_speedAddr = refreshAddr(m_speedOffsets);
     m_wallClimbAddr = refreshAddr(m_wallClimbOffsets);
+
+    // Optional: Log if a critical address becomes invalid during gameplay
+    if (m_xAddr == 0 && oldXAddr != 0) {
+        reportStatus("WARN: X coordinate address resolved to NULL. Pointer chain might be broken (e.g., zoning).");
+    }
 }
 
 void Hack::readXYZ() {
     if (!m_memoryManager.IsAttached()) return;
-    if (m_xAddr != 0) m_memoryManager.Read<float>(m_xAddr, m_xValue);
-    if (m_yAddr != 0) m_memoryManager.Read<float>(m_yAddr, m_yValue);
-    if (m_zAddr != 0) m_memoryManager.Read<float>(m_zAddr, m_zValue);
+    // Add checks for resolved addresses before reading
+    if (m_xAddr != 0) {
+        if (!m_memoryManager.Read<float>(m_xAddr, m_xValue)) reportStatus("ERROR: Failed to read X value at " + to_hex_string(m_xAddr));
+    }
+    else reportStatus("WARN: Cannot read X value, address not resolved.");
+
+    if (m_yAddr != 0) {
+        if (!m_memoryManager.Read<float>(m_yAddr, m_yValue)) reportStatus("ERROR: Failed to read Y value at " + to_hex_string(m_yAddr));
+    }
+    else reportStatus("WARN: Cannot read Y value, address not resolved.");
+
+    if (m_zAddr != 0) {
+        if (!m_memoryManager.Read<float>(m_zAddr, m_zValue)) reportStatus("ERROR: Failed to read Z value at " + to_hex_string(m_zAddr));
+    }
+    else reportStatus("WARN: Cannot read Z value, address not resolved.");
 }
 
 void Hack::writeXYZ(float xValue, float yValue, float zValue)
 {
     if (!m_memoryManager.IsAttached()) return;
-    if (m_xAddr != 0) m_memoryManager.Write<float>(m_xAddr, xValue);
-    if (m_yAddr != 0) m_memoryManager.Write<float>(m_yAddr, yValue);
-    if (m_zAddr != 0) m_memoryManager.Write<float>(m_zAddr, zValue);
+    // Add checks for resolved addresses before writing
+    if (m_xAddr != 0) {
+        if (!m_memoryManager.Write<float>(m_xAddr, xValue)) reportStatus("ERROR: Failed to write X value at " + to_hex_string(m_xAddr));
+    }
+    else reportStatus("WARN: Cannot write X value, address not resolved.");
+
+    if (m_yAddr != 0) {
+        if (!m_memoryManager.Write<float>(m_yAddr, yValue)) reportStatus("ERROR: Failed to write Y value at " + to_hex_string(m_yAddr));
+    }
+    else reportStatus("WARN: Cannot write Y value, address not resolved.");
+
+    if (m_zAddr != 0) {
+        if (!m_memoryManager.Write<float>(m_zAddr, zValue)) reportStatus("ERROR: Failed to write Z value at " + to_hex_string(m_zAddr));
+    }
+    else reportStatus("WARN: Cannot write Z value, address not resolved.");
 }
 
 uintptr_t Hack::refreshAddr(const std::vector<unsigned int>& offsets) {
+    // ResolvePointerChain already logs errors internally if it fails
     return m_memoryManager.ResolvePointerChain(m_baseAddressLocation, offsets);
 }
 

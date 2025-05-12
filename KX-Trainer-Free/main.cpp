@@ -182,7 +182,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                             // Hack::Initialize() or InitializeHackInBackground already logged the specific error.
                             // Set a generic message here if needed, but rely on logs.
                             if (initializationErrorMsg.empty()) { // Only set if status check didn't already fail
-                                initializationErrorMsg = "Hack initialization failed. See log for details.";
+                                initializationErrorMsg = "Hack initialization failed. Ensure Guild Wars 2 is running. If it is, try running both the game and the trainer as Administrator. See log for more details.";
                             }
                             ::SetWindowText(hwnd, WINDOW_TITLE_ERROR);
                             if (!::IsWindowVisible(hwnd)) ::ShowWindow(hwnd, SW_SHOW);
